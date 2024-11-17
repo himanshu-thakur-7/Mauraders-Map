@@ -1,10 +1,24 @@
 import React, { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
+import FontFaceObserver from 'fontfaceobserver';
 
 const PhaserGame: React.FC = () => {
     const gameRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        const font = new FontFaceObserver('HarryPotter'); // The name of the font in @font-face
+
+        // Wait for the font to load
+        font.load().then(() => {
+            console.log('Font loaded!');
+            // Now the font is ready to be used in Phaser
+            initializePhaser();
+        }).catch(() => {
+            console.log('Font failed to load');
+            // Fallback or use default font if custom font doesn't load
+            initializePhaser();
+        });
+        const initializePhaser = ()=>{
         const config: Phaser.Types.Core.GameConfig = {
             type: Phaser.AUTO,
             width: window.innerWidth,
@@ -32,7 +46,7 @@ const PhaserGame: React.FC = () => {
 
         let player: Phaser.Physics.Arcade.Sprite;
         let usernameText: Phaser.GameObjects.Text; // For displaying username inside the banner
-        const username = "Albus Dumbledoor"; 
+        const username = "Sirius Black"; 
         let lastPosition = {x:0,y:0};
         let lastFootprintTime = 0; // Tracks the last time a footprint was added
         const FOOTPRINT_DELAY = 400; // Delay between footprints in milliseconds
@@ -122,14 +136,17 @@ const PhaserGame: React.FC = () => {
         };
 
         window.addEventListener('resize', handleResize);
-
+    
         return () => {
             window.removeEventListener('resize', handleResize);
             game.destroy(true);
         };
+    }
     }, []);
 
+
     return null;
+
 };
 
 export default PhaserGame;
