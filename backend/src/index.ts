@@ -3,7 +3,10 @@ import Redis from "ioredis";
 
 const wss = new WebSocket.Server({ port: 8080 });
 
-const redis = new Redis();
+const redis = new Redis({
+  host:'localhost',
+  port:6379
+});
 
 interface UserPosition{
   userId: string,
@@ -24,23 +27,40 @@ interface CustomWebSocket extends WebSocket{
 wss.on('connection', (ws: CustomWebSocket) => {
   console.log('New client connected');
 
-  ws.on('message', (message: string) => {
+  ws.on('message', async(message: string) => {
     try{
       const parsedMessage = JSON.parse(message);
       console.log(parsedMessage);
       const {event, data} = parsedMessage;
       console.log(event);
+      // join event
       if(event === "join"){
         const {userId, roomId}:JoinEventType = data;
+        const key = `room:${roomId}`;
+        const usersInRoom = await redis.hgetall(key);
+
+        // Send the list of existing users to the newly joined user
+        const existingUsers = Object.values(usersInRoom).map((user) =>
+          JSON.parse(user)
+        );
+        ws.send(
+          JSON.stringify({
+            event: 'existingUsers',
+            data: existingUsers,
+          })
+        );
         console.log(`User ${userId} joined room ${roomId}`);
 
         ws.send(JSON.stringify({event: 'joined',data:{userId,roomId}}));
          ws['userId'] = userId;
          ws["roomId"] = roomId;
-
+        
+        const userPosition: UserPosition = { userId, roomId, x: 0, y: 0 };
+        await redis.hset(key, userId, JSON.stringify(userPosition));
+        
         broadcast(ws, roomId, {
           event: 'newUser',
-          data: { userId },
+          data: { userPosition },
         });
 
       }
@@ -53,7 +73,23 @@ wss.on('connection', (ws: CustomWebSocket) => {
     }
   });
 
-  ws.on('close', () => {
+  ws.on('close', async() => {
+    const userId = ws.userId;
+    const roomId = ws.roomId;
+
+    if (userId && roomId) {
+      console.log(`User ${userId} disconnected from room ${roomId}`);
+
+      // Remove the user from Redis
+      const key = `room:${roomId}`;
+      await redis.hdel(key, userId);
+
+      // Inform other users in the room that the user has left
+      broadcast(ws, roomId, {
+        event: 'userLeft',
+        data: { userId },
+      });
+    }
     console.log('Client disconnected');
   });
 });
@@ -62,10 +98,7 @@ wss.on('connection', (ws: CustomWebSocket) => {
 //  broadcast message
 const broadcast = (ws:CustomWebSocket, roomId: string, message:any )=>{
   wss.clients.forEach((client)=>{
-    console.log(ws === client)
     const customClient = client as CustomWebSocket;
-    console.log(customClient.readyState === WebSocket.OPEN);
-    console.log(customClient.roomId === roomId);
     if(customClient!== ws &&
       customClient.readyState === WebSocket.OPEN &&
       customClient.roomId === roomId
