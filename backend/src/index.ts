@@ -14,6 +14,9 @@ interface UserPosition{
   x: number,
   y: number
 }
+const SPACE_WIDTH = 800; // Replace with your Phaser width
+const SPACE_HEIGHT = 600;
+
 type JoinEventType = Omit<UserPosition,"x"|"y">
 enum Events{
   join,
@@ -55,7 +58,10 @@ wss.on('connection', (ws: CustomWebSocket) => {
          ws['userId'] = userId;
          ws["roomId"] = roomId;
         
-        const userPosition: UserPosition = { userId, roomId, x: 0, y: 0 };
+         const randomX = Math.floor(Math.random() * SPACE_WIDTH);
+        const randomY = Math.floor(Math.random() * SPACE_HEIGHT);
+
+        const userPosition: UserPosition = { userId, roomId, x: randomX, y: randomY };
         await redis.hset(key, userId, JSON.stringify(userPosition));
         
         broadcast(ws, roomId, {
