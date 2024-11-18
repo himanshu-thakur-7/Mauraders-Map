@@ -72,7 +72,17 @@ wss.on('connection', (ws: CustomWebSocket) => {
       }
       // console.log(`Received message: ${message}`);
       // ws.send(`Server received your message: ${message}`);
-
+      else if(event === "updateLocation"){
+        const {userId,roomId,x,y} = data;
+        const key = `room:${roomId}`;
+        const userPosition:UserPosition = {userId,roomId,x,y};
+        await redis.hset(key,userId,JSON.stringify(userPosition));
+        console.log(`User ${userId} moved to (${x}, ${y}) in room ${roomId}`);
+        broadcast(ws, roomId, {
+          event: 'userMoved',
+          data: { userPosition },
+        });
+      }
     }
     catch(e){
       console.log('Exception occurred',e);
@@ -103,12 +113,14 @@ wss.on('connection', (ws: CustomWebSocket) => {
 
 //  broadcast message
 const broadcast = (ws:CustomWebSocket, roomId: string, message:any )=>{
+  
   wss.clients.forEach((client)=>{
     const customClient = client as CustomWebSocket;
     if(customClient!== ws &&
       customClient.readyState === WebSocket.OPEN &&
       customClient.roomId === roomId
     ){
+      console.log('broadcasting....')
       customClient.send(JSON.stringify(message));
     }
   })
