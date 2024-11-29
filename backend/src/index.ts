@@ -14,8 +14,8 @@ interface UserPosition{
   x: number,
   y: number
 }
-const SPACE_WIDTH = 800; // Replace with your Phaser width
-const SPACE_HEIGHT = 600;
+const SPACE_WIDTH = 100; // Replace with your Phaser width
+const SPACE_HEIGHT = 10;
 
 type JoinEventType = Omit<UserPosition,"x"|"y">
 enum Events{
@@ -40,12 +40,20 @@ wss.on('connection', (ws: CustomWebSocket) => {
       if(event === "join"){
         const {userId, roomId}:JoinEventType = data;
         const key = `room:${roomId}`;
+        
+         const randomX = Math.floor(Math.random() * SPACE_WIDTH);
+        const randomY = Math.floor(Math.random() * SPACE_HEIGHT);
+
+        const userPosition: UserPosition = { userId, roomId, x: randomX, y: randomY };
+        await redis.hset(key, userId, JSON.stringify(userPosition));
+
         const usersInRoom = await redis.hgetall(key);
 
         // Send the list of existing users to the newly joined user
         const existingUsers = Object.values(usersInRoom).map((user) =>
           JSON.parse(user)
         );
+        console.log('Existing Users',existingUsers);
         ws.send(
           JSON.stringify({
             event: 'existingUsers',
@@ -57,12 +65,6 @@ wss.on('connection', (ws: CustomWebSocket) => {
         ws.send(JSON.stringify({event: 'joined',data:{userId,roomId}}));
          ws['userId'] = userId;
          ws["roomId"] = roomId;
-        
-         const randomX = Math.floor(Math.random() * SPACE_WIDTH);
-        const randomY = Math.floor(Math.random() * SPACE_HEIGHT);
-
-        const userPosition: UserPosition = { userId, roomId, x: randomX, y: randomY };
-        await redis.hset(key, userId, JSON.stringify(userPosition));
         
         broadcast(ws, roomId, {
           event: 'newUser',
