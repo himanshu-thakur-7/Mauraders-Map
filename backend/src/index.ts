@@ -68,7 +68,7 @@ wss.on('connection', (ws: CustomWebSocket) => {
         
         broadcast(ws, roomId, {
           event: 'newUser',
-          data: { userPosition },
+          data: [{ ...userPosition }],
         });
 
       }
@@ -82,7 +82,7 @@ wss.on('connection', (ws: CustomWebSocket) => {
         console.log(`User ${userId} moved to (${x}, ${y}) in room ${roomId}`);
         broadcast(ws, roomId, {
           event: 'userMoved',
-          data: { userPosition },
+          data: { ...userPosition },
         });
       }
     }

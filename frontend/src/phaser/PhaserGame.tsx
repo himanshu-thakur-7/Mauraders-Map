@@ -16,7 +16,7 @@ type UserPosition = {
 
 type WebSocketResponse = {
   event: string;
-  data: Array<UserPosition>;
+  data: Array<UserPosition> ;
 };
 
 const PhaserGame: React.FC = () => {
@@ -57,10 +57,37 @@ const PhaserGame: React.FC = () => {
         setExistingUsers(response.data);
         setIsDataLoaded(true); // Mark data as loaded
       }
+      else if(response.event === 'newUser')
+      {
+        console.log(response.data[0]);
+       setExistingUsers((prevExistingUsers) => {
+        // Ensure no duplicate entries based on userId
+        const isUserAlreadyPresent = prevExistingUsers.some(
+          (user) => user.userId === response.data[0].userId
+        );
+        if (!isUserAlreadyPresent) {
+          return [...prevExistingUsers, response.data[0]];
+        }
+        return prevExistingUsers;
+      });
+        console.log('User List Updated After New User',existingUsers);
+      }
     }
   }, [lastJsonMessage]);
 
+ useEffect(() => {
+  // Ensure that each player in `existingUsers` is added or updated in the Phaser scene
+  if (phaserSceneRef.current && isDataLoaded) {
+    existingUsers.forEach(user => {
+      if (phaserSceneRef.current) {
+        addOrUpdatePlayer(phaserSceneRef.current, user);
+      }
+    });
+  }
+}, [existingUsers, isDataLoaded]);
   // Initialize Phaser once WebSocket data is loaded
+
+  let localPlayer: Phaser.Physics.Arcade.Sprite;
   useEffect(() => {
     if (!isDataLoaded || !gameRef.current) return;
 
@@ -93,7 +120,6 @@ const PhaserGame: React.FC = () => {
       const FOOTPRINT_DELAY = 400;
       let lastPosition = {x:0,y:0};
       let lastFootprintTime = 0; 
-      let localPlayer: Phaser.Physics.Arcade.Sprite;
       function create(this: Phaser.Scene) {
         phaserSceneRef.current = this;
 
@@ -133,7 +159,7 @@ const PhaserGame: React.FC = () => {
         localPlayer.setData('label', label);
     }
     function update(this:Phaser.Scene,time:number){
-        
+
         existingUsers.forEach(user => {
           if (user.userId === localUserId.current) return; // Skip local player
           const player = playersRef.current[user.userId];
@@ -148,7 +174,7 @@ const PhaserGame: React.FC = () => {
         });
         const cursors = this.input.keyboard?.createCursorKeys();
     
-          const speed = 100;
+          const speed = 50;
           localPlayer.setVelocity(0);
     
           lastPosition = {x:localPlayer.x,y:localPlayer.y};
@@ -240,26 +266,28 @@ const PhaserGame: React.FC = () => {
   }, [isDataLoaded]);
 
   const addOrUpdatePlayer = (scene: Phaser.Scene, user: UserPosition) => {
-    if (!playersRef.current[user.userId]) {
-      const player = scene.physics.add.sprite(user.x, user.y, 'player');
-      player.setScale(0.09).setDepth(1);
-      playersRef.current[user.userId] = player;
+    if (user.userId !== localUserId.current) {
+      if (!playersRef.current[user.userId]) {
+        const player = scene.physics.add.sprite(user.x, user.y, 'player');
+        player.setScale(0.09).setDepth(1);
+        playersRef.current[user.userId] = player;
 
-      const label = scene.add.text(user.x, user.y, user.userId, {
-        fontFamily: 'HarryPotter',
-        fontSize: '18px',
-        color: '#000000',
-      });
-      label.setOrigin(0.5,0.8).setDepth(1);
-      player.setData('label', label);
-    } else {
-      const player = playersRef.current[user.userId];
-      player.x = user.x;
-      player.y = user.y;
+        const label = scene.add.text(user.x, user.y, user.userId, {
+          fontFamily: 'HarryPotter',
+          fontSize: '18px',
+          color: '#000000',
+        });
+        label.setOrigin(0.5, 0.8).setDepth(1);
+        player.setData('label', label);
+      } else {
+        const player = playersRef.current[user.userId];
+        player.x = user.x;
+        player.y = user.y;
 
-      const label = player.getData('label') as Phaser.GameObjects.Text;
-      label.x = user.x;
-      label.y = user.y;
+        const label = player.getData('label') as Phaser.GameObjects.Text;
+        label.x = user.x;
+        label.y = user.y;
+      }
     }
   };
 
