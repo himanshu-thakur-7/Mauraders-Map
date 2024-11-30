@@ -14,8 +14,8 @@ interface UserPosition{
   x: number,
   y: number
 }
-const SPACE_WIDTH = 100; // Replace with your Phaser width
-const SPACE_HEIGHT = 10;
+const SPACE_WIDTH = 800; // Replace with your Phaser width
+const SPACE_HEIGHT = 600;
 
 type JoinEventType = Omit<UserPosition,"x"|"y">
 enum Events{
