@@ -21,6 +21,8 @@ type WebSocketResponse = {
 
 
 const PhaserGame: React.FC = () => {
+  const collisionCooldowns = new Map(); // Key: player pair, Value: timestamp
+  const COOLDOWN_TIME = 4000; // 4 seconds
   const gameRef = useRef<HTMLDivElement>(null);
   const phaserSceneRef = useRef<Phaser.Scene | null>(null);
   const playersRef = useRef<Players>({});
@@ -43,21 +45,30 @@ function setupPlayerCollisions(scene: Phaser.Scene) {
         playerGroup.add(player);
     });
 
-    // Enable collisions between all players in the group
-    scene.physics.add.collider(playerGroup, playerGroup, (player1, player2) => {
-        if (player1 instanceof Phaser.Physics.Arcade.Sprite && player2 instanceof Phaser.Physics.Arcade.Sprite) {
-            console.log('Collision detected between:', (player1 as any).data.values.label._text, (player2 as any).data.values.label._text);
-            const p1 = (player1 as any).data.values.label._text;
-            const p2 = (player2 as any).data.values.label._text;
-            console.log('p1====',p1);
-            console.log('p2====',p2);
-            console.log('localUSerId====',localUserId);
-            
-            if(p1 === localUserId.current || p2 === localUserId.current){
+   scene.physics.add.collider(playerGroup, playerGroup, (player1, player2) => {
+    if (player1 instanceof Phaser.Physics.Arcade.Sprite && player2 instanceof Phaser.Physics.Arcade.Sprite) {
+        // Create a unique key for the player pair (ensure consistent ordering)
+        const id1 = (player1 as any).data.values.label._text;
+        const id2 = (player2 as any).data.values.label._text;
+        const pairKey = [id1, id2].sort().join('-'); // Ensure unique key irrespective of order
 
-            alert(`You met ${p1===localUserId.current ? p2 : p1}. Want to have video call or chat ?`);
-            const l1 = p1===localUserId.current? player1: player2;
-            const l2 = p1!==localUserId.current? player1: player2;
+        const currentTime = Date.now();
+
+        // Check if this pair is on cooldown
+        if (collisionCooldowns.has(pairKey)) {
+            const lastCollisionTime = collisionCooldowns.get(pairKey);
+            if (currentTime - lastCollisionTime < COOLDOWN_TIME) {
+                return; // Ignore collision if still on cooldown
+            }
+        }
+
+        // Log the collision
+        console.log('Collision detected between:', id1, id2);
+
+        // Check if the local user is involved
+        if (id1 === localUserId.current || id2 === localUserId.current) {
+            alert(`You met ${id1 === localUserId.current ? id2 : id1}. Want to have video call or chat?`);
+
             // Example collision response
             const tempVelocityX = player1.body?.velocity.x;
             const tempVelocityY = player1.body?.velocity.y;
@@ -66,13 +77,18 @@ function setupPlayerCollisions(scene: Phaser.Scene) {
                 player1.body.velocity.x = player2.body.velocity.x * -1;
                 player1.body.velocity.y = player2.body.velocity.y * -1;
 
-                player2.body.velocity.x = tempVelocityX !== undefined ?  tempVelocityX * -1 : 0;
-                player2.body.velocity.y =  tempVelocityY !== undefined ?  tempVelocityY * -1 : 0;
+                player2.body.velocity.x = tempVelocityX !== undefined ? tempVelocityX * -1 : 0;
+                player2.body.velocity.y = tempVelocityY !== undefined ? tempVelocityY * -1 : 0;
             }
-          }
-
         }
-    });    // Set world boundaries and bounce for players
+
+        // Update cooldown for this pair
+        collisionCooldowns.set(pairKey, currentTime);
+
+        // Clean up expired cooldown entries after the cooldown period
+        setTimeout(() => collisionCooldowns.delete(pairKey), COOLDOWN_TIME);
+    }
+});
     Object.values(playersRef.current).forEach(player => {
         // player.setCollideWorldBounds(true);
         // player.setBounce(0.1); // Add bounce effect on collisions
