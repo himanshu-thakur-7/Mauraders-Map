@@ -2,42 +2,31 @@ import React, { useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
 import FontFaceObserver from 'fontfaceobserver';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
-
-type Players = {
-  [key: string]: Phaser.Physics.Arcade.Sprite;
-};
-
-type UserPosition = {
-  userId: string;
-  roomId: string;
-  x: number;
-  y: number;
-};
-
-type WebSocketResponse = {
-  event: string;
-  data: Array<UserPosition> ;
-};
-
+import {Players, UserPosition, WebSocketResponse} from "./types";
+import {COOLDOWN_TIME,WS_URL,FOOTPRINT_DELAY} from "./constants";
+import {getRandomDirection,getNextDirectionOnCollision,sleep} from "./helper";
 
 const PhaserGame: React.FC = () => {
   const collisionCooldowns = new Map(); // Key: player pair, Value: timestamp
-  const COOLDOWN_TIME = 4000; // 4 seconds
   const gameRef = useRef<HTMLDivElement>(null);
   const phaserSceneRef = useRef<Phaser.Scene | null>(null);
   const playersRef = useRef<Players>({});
   const localPlayerRef = useRef<Phaser.Physics.Arcade.Sprite | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
-
-  const WS_URL = 'ws://localhost:8080';
   const [existingUsers, setExistingUsers] = useState<Array<UserPosition>>([]);
   const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket<WebSocketResponse>(WS_URL, {
     share: true,
     shouldReconnect: () => true,
   });
-const playersGroupRef = useRef<Phaser.Physics.Arcade.Group | null>(null);
 
-function setupPlayerCollisions(scene: Phaser.Scene) {
+
+  const playersGroupRef = useRef<Phaser.Physics.Arcade.Group | null>(null);
+  const localUserId = useRef(`user-${Math.random().toString(36).substring(7)}`);
+  let localPlayer: Phaser.Physics.Arcade.Sprite;
+  let lastPosition = {x:0,y:0};
+  let lastFootprintTime = 0; 
+
+  function setupPlayerCollisions(scene: Phaser.Scene) {
     const playerGroup = scene.physics.add.group(); // Group for player sprites
 
     // Add existing players to the group
@@ -87,16 +76,47 @@ function setupPlayerCollisions(scene: Phaser.Scene) {
 
         // Clean up expired cooldown entries after the cooldown period
         setTimeout(() => collisionCooldowns.delete(pairKey), COOLDOWN_TIME);
+    } 
+  });
+  }
+  
+  function addOrUpdatePlayer(scene: Phaser.Scene, user: UserPosition){
+  if (user.userId !== localUserId.current) {
+    if (!playersRef.current[user.userId]) {
+      const player = scene.physics.add.sprite(user.x, user.y, 'player');
+      player.setScale(0.09).setDepth(1);
+      player.setCollideWorldBounds(true);
+      player.setBounce(1); // Enable bounce on collision
+
+      playersRef.current[user.userId] = player;
+
+      const label = scene.add.text(user.x, user.y, user.userId, {
+        fontFamily: 'HarryPotter',
+        fontSize: '18px',
+        color: '#000000',
+      });
+      label.setOrigin(0.5, 0.8).setDepth(1);
+      player.setData('label', label);
+
+      // Add the player to the persistent group
+      if (playersGroupRef.current) {
+        playersGroupRef.current.add(player);
+      }
+
+      // Reapply player collisions
+      setupPlayerCollisions(scene);
+    } else {
+      const player = playersRef.current[user.userId];
+      player.x = user.x;
+      player.y = user.y;
+
+      const label = player.getData('label') as Phaser.GameObjects.Text;
+      label.x = user.x;
+      label.y = user.y;
     }
-});
-    Object.values(playersRef.current).forEach(player => {
-        // player.setCollideWorldBounds(true);
-        // player.setBounce(0.1); // Add bounce effect on collisions
-    });
-}
-
-  const localUserId = useRef(`user-${Math.random().toString(36).substring(7)}`);
-
+  }
+};
+    
   // Send join event on WebSocket connection
   useEffect(() => {
     if (readyState === ReadyState.OPEN) {
@@ -149,7 +169,6 @@ function setupPlayerCollisions(scene: Phaser.Scene) {
 }, [existingUsers, isDataLoaded]);
   // Initialize Phaser once WebSocket data is loaded
 
-  let localPlayer: Phaser.Physics.Arcade.Sprite;
   useEffect(() => {
     if (!isDataLoaded || !gameRef.current) return;
 
@@ -179,9 +198,8 @@ function setupPlayerCollisions(scene: Phaser.Scene) {
         this.load.image('background', 'assets/background.jpg');
         this.load.image('footprint','assets/footprint.png');
     }
-      const FOOTPRINT_DELAY = 600;
-      let lastPosition = {x:0,y:0};
-      let lastFootprintTime = 0; 
+     
+    
     function create(this: Phaser.Scene) {
         phaserSceneRef.current = this;
 
@@ -215,7 +233,7 @@ function setupPlayerCollisions(scene: Phaser.Scene) {
         if (playersGroupRef.current) {
         playersGroupRef.current.add(localPlayer);
       }
-      setupPlayerCollisions(this);
+        setupPlayerCollisions(this);
         // Add a label for the local player
         const label = this.add.text(400, 400, localUserId.current, {
           fontFamily: 'HarryPotter',
@@ -225,11 +243,6 @@ function setupPlayerCollisions(scene: Phaser.Scene) {
         label.setOrigin(0.5, 0.8).setDepth(1);
         localPlayer.setData('label', label);
     }
-    function sleep(ms:number) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
-
 
   async function moveBots(scene: Phaser.Scene, time: number, speed: number) {
     for (const user of existingUsers) {
@@ -285,10 +298,7 @@ function setupPlayerCollisions(scene: Phaser.Scene) {
 
   
 }
-function getRandomDirection(): string {
-  const directions = ['left', 'right', 'up', 'down'];
-  return directions[Math.floor(Math.random() * directions.length)];
-}
+
 // Helper: Check if player is hitting a border
 function isHittingBorder(player: Phaser.Physics.Arcade.Sprite, scene: Phaser.Scene): boolean {
   const { x, y } = player;
@@ -296,21 +306,7 @@ function isHittingBorder(player: Phaser.Physics.Arcade.Sprite, scene: Phaser.Sce
 
   return x <= bounds.x+3 || x >= bounds.width-3 || y <= bounds.y+3 || y >= bounds.height-3;
 }
-// Helper: Get the next direction on collision
-function getNextDirectionOnCollision(currentDirection: string): string {
-  switch (currentDirection) {
-    case 'left':
-      return 'right';
-    case 'right':
-      return 'left';
-    case 'up':
-      return 'down';
-    case 'down':
-      return 'up';
-    default:
-      return getRandomDirection();
-  }
-}
+
 // Helper: Move player in the given direction
 function movePlayerInDirection(player: Phaser.Physics.Arcade.Sprite, direction: string, speed: number) {
   switch (direction) {
@@ -430,43 +426,6 @@ function movePlayerInDirection(player: Phaser.Physics.Arcade.Sprite, direction: 
       .then(() => initializePhaser())
       .catch(() => initializePhaser());
   }, [isDataLoaded]);
-
-const addOrUpdatePlayer = (scene: Phaser.Scene, user: UserPosition) => {
-  if (user.userId !== localUserId.current) {
-    if (!playersRef.current[user.userId]) {
-      const player = scene.physics.add.sprite(user.x, user.y, 'player');
-      player.setScale(0.09).setDepth(1);
-      player.setCollideWorldBounds(true);
-      player.setBounce(1); // Enable bounce on collision
-
-      playersRef.current[user.userId] = player;
-
-      const label = scene.add.text(user.x, user.y, user.userId, {
-        fontFamily: 'HarryPotter',
-        fontSize: '18px',
-        color: '#000000',
-      });
-      label.setOrigin(0.5, 0.8).setDepth(1);
-      player.setData('label', label);
-
-      // Add the player to the persistent group
-      if (playersGroupRef.current) {
-        playersGroupRef.current.add(player);
-      }
-
-      // Reapply player collisions
-      setupPlayerCollisions(scene);
-    } else {
-      const player = playersRef.current[user.userId];
-      player.x = user.x;
-      player.y = user.y;
-
-      const label = player.getData('label') as Phaser.GameObjects.Text;
-      label.x = user.x;
-      label.y = user.y;
-    }
-  }
-};
 
   return <div ref={gameRef} style={{ width: '100%', height: '100%' }} />;
 };
