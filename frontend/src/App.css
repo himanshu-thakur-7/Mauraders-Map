@@ -5,16 +5,17 @@ html,
   margin: 0;
   padding: 0;
   width: 100%;
-  font-family: 'HarryPotter', sans-serif;
+  height: 100%;
+  font-family: "HarryPotter", sans-serif;
   /* Prevent scrollbars */
 }
 
 canvas {
   display: block;
 }
- @font-face {
-   font-family: 'HarryPotter';
-   src: url('/assets/fonts/oldenglishtextmt.ttf') format('truetype');
-   font-weight: normal;
-   font-style: normal;
- }
+@font-face {
+  font-family: "HarryPotter";
+  src: url("/assets/fonts/oldenglishtextmt.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}

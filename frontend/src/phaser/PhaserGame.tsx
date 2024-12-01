@@ -175,8 +175,8 @@ const PhaserGame: React.FC = () => {
     const initializePhaser = () => {
       const config: Phaser.Types.Core.GameConfig = {
         type: Phaser.AUTO,
-        width: 800,
-        height: 800,
+        width: window.innerWidth,
+        height: window.innerHeight,
         parent: gameRef.current,
         physics: {
           default: 'arcade',
