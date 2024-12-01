@@ -181,7 +181,7 @@ const PhaserGame: React.FC = () => {
         physics: {
           default: 'arcade',
           arcade: {
-            debug: true,
+            debug: false,
           },
         },
         scene: {
@@ -194,14 +194,20 @@ const PhaserGame: React.FC = () => {
       const game = new Phaser.Game(config);
 
       function preload(this: Phaser.Scene) {
+        this.load.image('tiles', 'assets/TileSet.jpg'); // Tileset image
+        this.load.tilemapTiledJSON('map', 'assets/MauraderMap.json'); // Tiled JSON file
         this.load.image('player', 'assets/player.png');
-        this.load.image('background', 'assets/background.jpg');
+        this.load.image('background', 'assets/TileSet.jpg');
         this.load.image('footprint','assets/footprint.png');
     }
      
     
     function create(this: Phaser.Scene) {
         phaserSceneRef.current = this;
+        // const map = this.make.tilemap({ key: 'map' });
+        // console.log(map);
+      // Add tileset image (must match name in Tiled)
+        // const tileset = map.addTilesetImage('TilesetName', 'tiles');
 
         // Add and scale the background
         const background = this.add.image(0, 0, 'background').setOrigin(0, 0);
