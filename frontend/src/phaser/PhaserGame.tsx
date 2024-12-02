@@ -5,8 +5,11 @@ import useWebSocket, { ReadyState } from 'react-use-websocket';
 import {Players, UserPosition, WebSocketResponse} from "./types";
 import {COOLDOWN_TIME,WS_URL,FOOTPRINT_DELAY} from "./constants";
 import {getRandomDirection,getNextDirectionOnCollision,sleep} from "./helper";
+import Loader from '../components/loader/loader';
 
 const PhaserGame: React.FC = () => {
+  
+  const [isLoading, setIsLoading] = useState(true);
   const collisionCooldowns = new Map(); // Key: player pair, Value: timestamp
   const gameRef = useRef<HTMLDivElement>(null);
   const phaserSceneRef = useRef<Phaser.Scene | null>(null);
@@ -194,11 +197,15 @@ const PhaserGame: React.FC = () => {
       const game = new Phaser.Game(config);
 
       function preload(this: Phaser.Scene) {
-        this.load.image('tiles', 'assets/TileSet.jpg'); // Tileset image
-        this.load.tilemapTiledJSON('map', 'assets/MauraderMap.json'); // Tiled JSON file
+        console.log('Started loading')
+        // this.load.image('tiles', 'assets/TileSet.jpg'); // Tileset image
+        // this.load.tilemapTiledJSON('map', 'assets/MauraderMap.json'); // Tiled JSON file
+
         this.load.image('player', 'assets/player.png');
         this.load.image('background', 'assets/TileSet.jpg');
         this.load.image('footprint','assets/footprint.png');
+
+        setIsLoading(false);
     }
      
     
@@ -433,7 +440,14 @@ function movePlayerInDirection(player: Phaser.Physics.Arcade.Sprite, direction: 
       .catch(() => initializePhaser());
   }, [isDataLoaded]);
 
-  return <div ref={gameRef} style={{ width: '100%', height: '100%' }} />;
+  return <div>
+    {isLoading ? <Loader/>:<></>
+    
+  }
+  <div ref={gameRef} style={{ width: '100%', height: '100%' }} />
+    
+    </div>
+    
 };
 
 export default PhaserGame;

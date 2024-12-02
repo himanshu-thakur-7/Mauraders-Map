@@ -42,12 +42,12 @@ const MaraudersMap = ({ isActive, setIsActive,setLoadGame }: MaraudersMapProps) 
       </div>
       
       <div className="map-side side-1">
-        <div className="front" style={{ 'background-color': '#EBDCA5','height':600,'width':157 } as React.CSSProperties}>
+        <div className="front" style={{ 'backgroundColor': '#EBDCA5','height':600,'width':157 } as React.CSSProperties}>
         </div>
         <div className="back"></div>
       </div>
       <div className="map-side side-2">
-        <div className="front" style={{'background-color': '#EBDCA5','height':600,'width':157} as React.CSSProperties}></div>
+        <div className="front" style={{'backgroundColor': '#EBDCA5','height':600,'width':157} as React.CSSProperties}></div>
         <div className="back"></div>
       </div>
       <div className="map-side side-3">
