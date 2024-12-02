@@ -22,7 +22,10 @@ const MaraudersMap = ({ isActive, setIsActive,setLoadGame }: MaraudersMapProps) 
       <div className="map-flap flap--1">
         <div className="map-flap__front">
         </div>
-        <div className="map-flap__back"></div>
+        <div className="map-flap__back">
+            
+        </div>
+        <img src='assets/harryedvige5.png' style={{'rotate':'180deg'}} className='absolute -bottom-16 -mb-4' ></img>
       </div>
       <div className='justify-center mt-72'>
           <button onClick={()=>{
