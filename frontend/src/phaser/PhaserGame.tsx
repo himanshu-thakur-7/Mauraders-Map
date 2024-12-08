@@ -6,6 +6,10 @@ import {Players, UserPosition, WebSocketResponse} from "./types";
 import {COOLDOWN_TIME,WS_URL,FOOTPRINT_DELAY} from "./constants";
 import {getRandomDirection,getNextDirectionOnCollision,sleep} from "./helper";
 import Loader from '../components/loader/loader';
+import ChatScreen from '@/components/ChatScreen';
+import { useRecoilState, useRecoilValue } from 'recoil';
+import {chatSheetAtom} from "../recoil/atoms/chatSheetAtom";
+import {chatSheetToggle} from "../recoil/selectors/chatSheetSelector";
 
 const PhaserGame: React.FC = () => {
   
@@ -17,11 +21,13 @@ const PhaserGame: React.FC = () => {
   const localPlayerRef = useRef<Phaser.Physics.Arcade.Sprite | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [existingUsers, setExistingUsers] = useState<Array<UserPosition>>([]);
+  const [toggleChatSheet,setToggleChatSheet] = useRecoilState(chatSheetAtom);
+  const toggleChatSheetValue = useRecoilValue(chatSheetToggle);
   const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket<WebSocketResponse>(WS_URL, {
     share: true,
     shouldReconnect: () => true,
   });
-
+  const game = useRef<Phaser.Game | null>(null);
 
   const playersGroupRef = useRef<Phaser.Physics.Arcade.Group | null>(null);
   const localUserId = useRef(`user-${Math.random().toString(36).substring(7)}`);
@@ -59,8 +65,10 @@ const PhaserGame: React.FC = () => {
 
         // Check if the local user is involved
         if (id1 === localUserId.current || id2 === localUserId.current) {
-            alert(`You met ${id1 === localUserId.current ? id2 : id1}. Want to have video call or chat?`);
-
+            // alert(`You met ${id1 === localUserId.current ? id2 : id1}. Want to have video call or chat?`);
+            game.current?.pause();
+            setToggleChatSheet(true);
+            
             // Example collision response
             const tempVelocityX = player1.body?.velocity.x;
             const tempVelocityY = player1.body?.velocity.y;
@@ -193,8 +201,8 @@ const PhaserGame: React.FC = () => {
           update,
         },
       };
-
-      const game = new Phaser.Game(config);
+      
+      game.current = new Phaser.Game(config);
 
       function preload(this: Phaser.Scene) {
         console.log('Started loading')
@@ -421,14 +429,14 @@ function movePlayerInDirection(player: Phaser.Physics.Arcade.Sprite, direction: 
 
       // Handle window resizing
       const handleResize = () => {
-        game.scale.resize(window.innerWidth, window.innerHeight);
+        game.current?.scale.resize(window.innerWidth, window.innerHeight);
       };
 
       window.addEventListener('resize', handleResize);
 
       return () => {
         window.removeEventListener('resize', handleResize);
-        game.destroy(true);
+        game.current?.destroy(true);
       };
     };
 
@@ -440,12 +448,21 @@ function movePlayerInDirection(player: Phaser.Physics.Arcade.Sprite, direction: 
       .catch(() => initializePhaser());
   }, [isDataLoaded]);
 
+  useEffect(()=>{
+    console.log('Game::',game)
+    if(game.current){
+      if(toggleChatSheetValue === false)
+      {
+        game.current.resume();
+      }
+    }
+  },[toggleChatSheetValue])
   return <div>
     {isLoading ? <Loader/>:<></>
     
   }
   <div ref={gameRef} style={{ width: '100%', height: '100%' }} />
-    
+   { toggleChatSheetValue ? <ChatScreen></ChatScreen> : <></> }
     </div>
     
 };
