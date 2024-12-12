@@ -1,33 +1,150 @@
 import express from 'express';
 import { config } from 'dotenv';
-import {  OpenAI } from 'openai';
+import { OpenAI } from 'openai';
+import cors from 'cors';
+import * as PlayHT from 'playht';
+import fs from 'fs';
+import path from 'path';
 
 // Load environment variables
 config();
 
-// Create a web servera
+PlayHT.init({
+  userId: process.env.PLAYHT_USER_ID || '',
+  apiKey: process.env.PLAYHT_API_KEY || '',
+});
+
+// 1️⃣ Resolve the absolute path to the static folder
+const staticFolderPath = path.join(__dirname, 'static');
+
+// 2️⃣ Ensure the static folder exists, if not, create it
+if (!fs.existsSync(staticFolderPath)) {
+  fs.mkdirSync(staticFolderPath, { recursive: true }); // Create 'static' folder if it doesn't exist
+}
+
+// Create a web server
 const app = express();
 const port = process.env.PORT || 3034;
 
 app.use(express.json());
+app.use(cors());
+
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
-// Initialize OpenAI API
 
+// Initialize OpenAI API
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-
 });
 
-// Define a route to handle questions
+type GPTChat ={
+  role: string,
+  content: string
+} 
+
+const sessions: Map<string, Array<GPTChat>> = new Map();// Define a route to handle questions
 app.post('/chat', async (req, res) => {
+  const { sessionId, character, Message } = req.body;
+  if (!sessions.has(sessionId)) {
+    sessions.set(sessionId, []);
+  }
+  const sessionMessages = sessions.get(sessionId);
+  if (sessionMessages) {
+    sessionMessages.push({
+      role: 'user', 
+      content: `Give me a response for the following chat message as ${character} from Harry Potter Series. 
+                Message: ${Message}. 
+                The output should be in the following output format. If there is no action then return the action as an empty string. 
+                Return it as a JSON String. The Action should only show the action / expression whatever he says must be in the Response field. 
+                Action and Response key's capitalization should not be changed.
+                Example: 
+                Message: Professor I am having trouble sleeping.
+                Action: ${character} nods thoughtfully. 
+                Response: I understand. Let me help you with that.`
+    });
+  }
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        { 
+          role: 'user', 
+          content: `Give me a response for the following chat message as ${character} from Harry Potter Series. 
+            Message: ${Message}. 
+            The output should be in the following output format. If there is no action then return the action as empty string. 
+            Return it as a JSON String. The Action should only show the action / expression whatever he says must be in Response field. 
+            Action and Response key's capitalization should not be changed.
+            Example: 
+            Message: Professor I am having trouble sleeping.
+            Action: ${character} nods thoughtfully. 
+            Response: I understand. Let me help you with that..` 
+        }
+      ],
+    });
 
-  const {character,Message} = req.body;
-  const completion = await openai.chat.completions.create({
-    model: 'gpt-3.5-turbo',
-    messages: [{ role: 'user', content: `Give me a response for the following chat message as ${character} from Harry Potter Series. Message: ${Message}` }],
+    const content = completion.choices[0].message.content;
+
+    if (typeof content === 'string') {
+      const parsedContent = JSON.parse(content);
+      const responseText = parsedContent['Response'];
+      // 1️⃣ Generate audio file for the response text
+      if(responseText){
+        const audioFilePath = await generateAudio(responseText);
+        // 2️⃣ Read the file and convert it to base64
+        fs.readFile(audioFilePath as string, (err, data) => {
+          if (err) {
+            console.error('❌ Failed to read the audio file:', err);
+            return res.status(500).json({ error: 'Failed to read the audio file' });
+          }
+          
+          const base64Audio = data.toString('base64');
+          res.send({ Audio: base64Audio, ...parsedContent });
+        });
+      }
+      else{
+        res.send(parsedContent);
+      }
+      
+
+    } else {
+      res.status(500).send('Unexpected response format from OpenAI');
+    }
+  } catch (error) {
+    console.error('❌ Error in /chat route:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+
+
+});async function generateAudio(text:string) {
+  return new Promise((resolve, reject) => {
+    // 1️⃣ Create a unique file path for the output audio
+    const fileName = `output_${Date.now()}.mp3`; // Create a unique file name
+    const filePath = path.join(staticFolderPath, fileName);
+
+    // 2️⃣ Create a writable stream for the output file
+    const writeStream = fs.createWriteStream(filePath);
+
+    PlayHT.stream(text, { 
+      voiceEngine: 'PlayHT2.0', 
+      voiceId: 's3://voice-cloning-zero-shot/281bb9e6-80bc-4c03-8ebd-3ca05fdd61a6/original/manifest.json' 
+    })
+    .then((stream) => {
+      stream.pipe(writeStream);
+      
+      stream.on('end', () => {
+        console.log(`✅ Audio file successfully saved at: ${filePath}`);
+        resolve(filePath); // Resolve with the file path
+      });
+
+      stream.on('error', (error) => {
+        console.error('❌ Error while streaming audio:', error);
+        reject(error);
+      });
+    })
+    .catch((error) => {
+      console.error('❌ Error initializing PlayHT stream:', error);
+      reject(error);
+    });
   });
-
-  res.send(completion.choices[0].message.content);
-});
+}

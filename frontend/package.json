@@ -18,6 +18,7 @@
     "@types/artyom.js": "^1.0.6",
     "artyom": "^0.0.1-security",
     "artyom.js": "^1.0.6",
+    "axios": "^1.7.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "fontfaceobserver": "^2.3.0",
