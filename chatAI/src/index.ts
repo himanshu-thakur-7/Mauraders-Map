@@ -126,7 +126,8 @@ async function generateAudio(text: string) {  return new Promise((resolve, rejec
 
     PlayHT.stream(text, { 
       voiceEngine: 'PlayHT2.0', 
-      voiceId: 's3://voice-cloning-zero-shot/281bb9e6-80bc-4c03-8ebd-3ca05fdd61a6/original/manifest.json' 
+      voiceId: 's3://voice-cloning-zero-shot/0927d2b3-915e-4c6c-b0f5-768d79aa463a/original/manifest.json' ,
+      
     })
     .then((stream) => {
       stream.pipe(writeStream);
