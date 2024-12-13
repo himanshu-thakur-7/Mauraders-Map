@@ -46,31 +46,20 @@ type GPTChat ={
 const sessions: Map<string, Array<GPTChat>> = new Map();// Define a route to handle questions
 app.post('/chat', async (req, res) => {
   const { sessionId, character, Message } = req.body;
-  if (!sessions.has(sessionId)) {
-    sessions.set(sessionId, []);
-  }
-  const sessionMessages = sessions.get(sessionId);
-  if (sessionMessages) {
-    sessionMessages.push({
-      role: 'user', 
-      content: `Give me a response for the following chat message as ${character} from Harry Potter Series. 
-                Message: ${Message}. 
-                The output should be in the following output format. If there is no action then return the action as an empty string. 
-                Return it as a JSON String. The Action should only show the action / expression whatever he says must be in the Response field. 
-                Action and Response key's capitalization should not be changed.
-                Example: 
-                Message: Professor I am having trouble sleeping.
-                Action: ${character} nods thoughtfully. 
-                Response: I understand. Let me help you with that.`
-    });
-  }
+
   try {
+    const sessionMessages = sessions.get(sessionId) || [];
+    console.log('Session Messages::',sessionMessages)
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
+        ...sessionMessages.map(msg => ({
+          role: msg.role as 'system' | 'user' | 'assistant',
+          content: msg.content
+        })),
         { 
           role: 'user', 
-          content: `Give me a response for the following chat message as ${character} from Harry Potter Series. 
+          content: `Give me a response for the following chat message as ${character} from Harry Potter Series. The message response should be based on context derived from previous messages.
             Message: ${Message}. 
             The output should be in the following output format. If there is no action then return the action as empty string. 
             Return it as a JSON String. The Action should only show the action / expression whatever he says must be in Response field. 
@@ -84,10 +73,23 @@ app.post('/chat', async (req, res) => {
     });
 
     const content = completion.choices[0].message.content;
-
-    if (typeof content === 'string') {
+    if (!sessions.has(sessionId)) {
+        sessions.set(sessionId, []);
+    }
+    if (content !== null) {
       const parsedContent = JSON.parse(content);
       const responseText = parsedContent['Response'];
+      const sessionMessages = sessions.get(sessionId);
+      if (sessionMessages) {
+        sessionMessages.push({
+          role: 'user', 
+          content: Message
+        });
+        sessionMessages.push({
+          role: 'assistant',
+          content: content
+        });
+      }
       // 1️⃣ Generate audio file for the response text
       if(responseText){
         const audioFilePath = await generateAudio(responseText);
@@ -101,12 +103,11 @@ app.post('/chat', async (req, res) => {
           const base64Audio = data.toString('base64');
           res.send({ Audio: base64Audio, ...parsedContent });
         });
+
       }
       else{
         res.send(parsedContent);
       }
-      
-
     } else {
       res.status(500).send('Unexpected response format from OpenAI');
     }
@@ -114,10 +115,8 @@ app.post('/chat', async (req, res) => {
     console.error('❌ Error in /chat route:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
-
-
-});async function generateAudio(text:string) {
-  return new Promise((resolve, reject) => {
+});
+async function generateAudio(text: string) {  return new Promise((resolve, reject) => {
     // 1️⃣ Create a unique file path for the output audio
     const fileName = `output_${Date.now()}.mp3`; // Create a unique file name
     const filePath = path.join(staticFolderPath, fileName);
