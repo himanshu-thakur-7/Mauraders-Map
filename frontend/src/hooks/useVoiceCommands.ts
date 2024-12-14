@@ -14,10 +14,10 @@ export const useVoiceCommands = (setIsActive: (isActive: boolean) => void) => {
           .join('');
         
         const lowerTranscript = transcript.toLowerCase();
-        
+        console.log(lowerTranscript);
         if (lowerTranscript.includes('up to no good')) {
           setIsActive(true);
-        } else if (lowerTranscript.includes('mischief managed')) {
+        } else if (lowerTranscript.includes('close')) {
           setIsActive(false);
         }
       };

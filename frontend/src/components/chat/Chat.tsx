@@ -4,6 +4,9 @@ import { MessageInput } from './MessageInput';
 import { Message,AIChatResponse } from './types';
 import { TypingIndicator } from './TypingIndicator';
 import axios, {AxiosResponse} from "axios";
+import {chatUserAtom} from "../../recoil/atoms/chatSheetAtom";
+
+import { useRecoilValue } from 'recoil';
 
 const initialMessages: Message[] = [
   {
@@ -46,6 +49,7 @@ const initialMessages: Message[] = [
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [isTyping, setIsTyping] = useState<'user' | 'ai' | null>(null);
+  const user = useRecoilValue(chatUserAtom);
   // Ref for the chat container
   const chatContainerRef = useRef<HTMLDivElement>(null);
   let audioUrl = '';
@@ -87,9 +91,10 @@ export default function Chat() {
     setIsTyping('ai');
     
     const response: AxiosResponse = await axios.post('http://localhost:3034/chat',{
-        "character":"Severus Snape",
+        "character":user.name,
         "Message":content,
-        "session":"abcdefgh"
+        "session":`${Math.random()} ID`,
+        "audio":user.audio
     });
     
     const responseData: AIChatResponse = response.data;
@@ -128,12 +133,12 @@ export default function Chat() {
     <div className="h-screen bg-white flex flex-col">
       <header className="flex items-center border-b border-gray-700 p-4">
         <img
-          src="assets/Snape.png"
-          alt="Severus Snape"
+          src={user.image_url}
+          alt={user.name}
           className="w-10 h-10 rounded-full mr-4"
         />
         <div>
-          <h1 className="text-xl font-semibold text-black">Severus Snape</h1>
+          <h1 className="text-xl font-semibold text-black">{user.name}</h1>
         </div>
       </header>
 

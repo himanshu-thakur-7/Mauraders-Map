@@ -1,15 +1,16 @@
-import React from 'react';
 import { AudioPlayer } from '../audio/AudioPlayer';
 import { ChatMessageProps } from './types';
-
+import { useRecoilValue } from 'recoil';
+import { chatUserAtom } from '@/recoil/atoms/chatSheetAtom';
 export function ChatMessage({ message }: ChatMessageProps) {
   const isAI = message.sender === 'ai';
+  const user = useRecoilValue(chatUserAtom);
   
   return (
     <div className={`flex items-start gap-2 mb-4 ${isAI ? '' : 'justify-end'}`}>
       {isAI && (
         <img
-          src="assets/Snape.png"
+          src={user.image_url}
           alt="AI Avatar"
           className="w-8 h-8 rounded-full"
         />

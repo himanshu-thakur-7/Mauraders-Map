@@ -1,5 +1,24 @@
 import WebSocket from 'ws';
 import Redis from "ioredis";
+import FirestoreClient from './firestoreClient';
+import { BOT_DATA } from './types';
+
+
+
+const addBotsToEnvironment =  async(key:string,roomId:string)=>{
+  const fsClient = new FirestoreClient();
+  const botsData:Array<BOT_DATA> =  await fsClient.getDocuments('bots');
+  botsData.forEach(async bot=>{
+       const randomX = Math.floor(Math.random() * SPACE_WIDTH);
+       const randomY = Math.floor(Math.random() * SPACE_HEIGHT);
+        const userName = bot.name
+        const userPosition: UserPosition = { userId:userName, roomId:roomId, x: randomX, y: randomY };
+        const metaData: BOT_DATA = {...bot};
+        await redis.hset(key, userName, JSON.stringify({...userPosition,...metaData}));
+  });
+}
+
+
 
 const wss = new WebSocket.Server({ port: 8080 });
 
@@ -15,7 +34,7 @@ interface UserPosition{
   y: number
 }
 const SPACE_WIDTH = 800; // Replace with your Phaser width
-const SPACE_HEIGHT = 600;
+const SPACE_HEIGHT = 1000;
 
 type JoinEventType = Omit<UserPosition,"x"|"y">
 enum Events{
@@ -27,7 +46,7 @@ interface CustomWebSocket extends WebSocket{
   roomId? : string
 }
 
-wss.on('connection', (ws: CustomWebSocket) => {
+wss.on('connection', async (ws: CustomWebSocket) => {
   console.log('New client connected');
 
   ws.on('message', async(message: string) => {
@@ -40,8 +59,8 @@ wss.on('connection', (ws: CustomWebSocket) => {
       if(event === "join"){
         const {userId, roomId}:JoinEventType = data;
         const key = `room:${roomId}`;
-        
-         const randomX = Math.floor(Math.random() * SPACE_WIDTH);
+        await addBotsToEnvironment(key,roomId);
+        const randomX = Math.floor(Math.random() * SPACE_WIDTH);
         const randomY = Math.floor(Math.random() * SPACE_HEIGHT);
 
         const userPosition: UserPosition = { userId, roomId, x: randomX, y: randomY };

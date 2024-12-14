@@ -2,13 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
 import FontFaceObserver from 'fontfaceobserver';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
-import {Players, UserPosition, WebSocketResponse} from "./types";
+import {Players, UserPosition, WebSocketResponse,MetaData} from "./types";
 import {COOLDOWN_TIME,WS_URL,FOOTPRINT_DELAY} from "./constants";
 import {getRandomDirection,getNextDirectionOnCollision,sleep} from "./helper";
 import Loader from '../components/loader/loader';
 import ChatScreen from '@/components/ChatScreen';
 import { useRecoilState, useRecoilValue } from 'recoil';
-import {chatSheetAtom} from "../recoil/atoms/chatSheetAtom";
+import {chatSheetAtom,chatUserAtom} from "../recoil/atoms/chatSheetAtom";
 import {chatSheetToggle} from "../recoil/selectors/chatSheetSelector";
 
 const PhaserGame: React.FC = () => {
@@ -20,9 +20,11 @@ const PhaserGame: React.FC = () => {
   const playersRef = useRef<Players>({});
   const localPlayerRef = useRef<Phaser.Physics.Arcade.Sprite | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
-  const [existingUsers, setExistingUsers] = useState<Array<UserPosition>>([]);
+  const [existingUsers, setExistingUsers] = useState<Array<UserPosition & MetaData>>([]);
   const [toggleChatSheet,setToggleChatSheet] = useRecoilState(chatSheetAtom);
-  const toggleChatSheetValue = useRecoilValue(chatSheetToggle);
+  const [_, setChatUser] = useRecoilState(chatUserAtom);
+  // OR if you only need to read
+  const chatUserValue = useRecoilValue(chatUserAtom);  const toggleChatSheetValue = useRecoilValue(chatSheetToggle);
   const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket<WebSocketResponse>(WS_URL, {
     share: true,
     shouldReconnect: () => true,
@@ -43,7 +45,7 @@ const PhaserGame: React.FC = () => {
         playerGroup.add(player);
     });
 
-   scene.physics.add.collider(playerGroup, playerGroup, (player1, player2) => {
+scene.physics.add.collider(playerGroup, playerGroup, (player1, player2) => {
     if (player1 instanceof Phaser.Physics.Arcade.Sprite && player2 instanceof Phaser.Physics.Arcade.Sprite) {
         // Create a unique key for the player pair (ensure consistent ordering)
         const id1 = (player1 as any).data.values.label._text;
@@ -66,7 +68,15 @@ const PhaserGame: React.FC = () => {
         // Check if the local user is involved
         if (id1 === localUserId.current || id2 === localUserId.current) {
             // alert(`You met ${id1 === localUserId.current ? id2 : id1}. Want to have video call or chat?`);
+            const otherUser = id1 === localUserId.current ? id2 : id1;
+            const x = existingUsers.filter((u)=>u.userId===otherUser)[0];
             game.current?.pause();
+            setChatUser({
+              name: x.userId,
+              image_url: x.image_url!,
+              audio: x.audio!,
+              description:x.description!
+            })
             setToggleChatSheet(true);
             
             // Example collision response
@@ -88,8 +98,7 @@ const PhaserGame: React.FC = () => {
         // Clean up expired cooldown entries after the cooldown period
         setTimeout(() => collisionCooldowns.delete(pairKey), COOLDOWN_TIME);
     } 
-  });
-  }
+  });  }
   
   function addOrUpdatePlayer(scene: Phaser.Scene, user: UserPosition){
   if (user.userId !== localUserId.current) {

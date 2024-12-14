@@ -1,10 +1,12 @@
 import React, { useState, KeyboardEvent } from 'react';
 import { Send } from 'lucide-react';
 import { MessageInputProps } from './types';
+import { useRecoilValue } from 'recoil';
+import { chatUserAtom } from '@/recoil/atoms/chatSheetAtom';
 
 export function MessageInput({ onSendMessage }: MessageInputProps) {
   const [message, setMessage] = useState('');
-
+  const user = useRecoilValue(chatUserAtom);
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim()) {
@@ -24,7 +26,7 @@ export function MessageInput({ onSendMessage }: MessageInputProps) {
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Message Severus Snape"
+        placeholder={`Message ${user.name}`}
         className="flex-1 bg-gray-50 text-gray-900 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-200"
       />
       <button

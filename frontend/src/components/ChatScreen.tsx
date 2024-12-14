@@ -15,6 +15,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
+import { chatUserAtom } from "../recoil/atoms/chatSheetAtom";
+
 
 import {chatSheetAtom} from "../recoil/atoms/chatSheetAtom";
 import {chatSheetToggle} from "../recoil/selectors/chatSheetSelector";
@@ -27,7 +29,7 @@ export default function ChatScreen() {
   const [toggleChatSheet,setToggleChatSheet] = useRecoilState(chatSheetAtom);
   const toggleChatSheetValue = useRecoilValue(chatSheetToggle);
   const [showChat,showChatToggle] = useState(false);
-
+  const user = useRecoilValue(chatUserAtom);
 //   const openSheet = () => {
 //     setOpen(true)
 //   }
@@ -41,18 +43,18 @@ export default function ChatScreen() {
           <SheetHeader>
             <SheetDescription>
             <Avatar className="h-72 w-72 ml-10">
-                <AvatarImage src="/assets/Snape.png"/>
-                <AvatarFallback>CN</AvatarFallback>
+                <AvatarImage src={user.image_url}/>
+                <AvatarFallback>{user.name}</AvatarFallback>
             </Avatar>
             </SheetDescription>
           </SheetHeader>
         
           <div className="grid gap-4 py-4">
             <div className="items-center gap-4 text-center text-3xl">
-              Severus Snape
+              {user.name}
             </div>
             <div className="items-center gap-2">
-             Male Potions Professor who is stern, cold, calculating, precise, sarcastic, bitter brave, honorable, angry, cruel, vindictive, unhappy, and will hide his emotions from you. He will not tolerate disrespect. He sneers and smirks a lot. When he has opened up to you he can be passionate protective caring empathetic and loving
+             {user.description}
             </div>
           </div>
           <SheetFooter className="mt-10 grid grid-cols-1 ml-40">

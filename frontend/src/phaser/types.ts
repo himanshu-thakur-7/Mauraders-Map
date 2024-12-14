@@ -9,6 +9,11 @@ export type UserPosition = {
   y: number;
 };
 
+export type MetaData = {
+  image_url?:string,
+  audio?:string
+  description?:string
+}
 export type WebSocketResponse = {
   event: string;
   data: Array<UserPosition> ;

@@ -14,10 +14,10 @@ PlayHT.init({
   apiKey: process.env.PLAYHT_API_KEY || '',
 });
 
-// 1️⃣ Resolve the absolute path to the static folder
+// 1⃣ Resolve the absolute path to the static folder
 const staticFolderPath = path.join(__dirname, 'static');
 
-// 2️⃣ Ensure the static folder exists, if not, create it
+// 2⃣ Ensure the static folder exists, if not, create it
 if (!fs.existsSync(staticFolderPath)) {
   fs.mkdirSync(staticFolderPath, { recursive: true }); // Create 'static' folder if it doesn't exist
 }
@@ -38,18 +38,20 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-type GPTChat ={
+type GPTChat = {
   role: string,
   content: string
-} 
+}; 
 
-const sessions: Map<string, Array<GPTChat>> = new Map();// Define a route to handle questions
+const sessions: Map<string, Array<GPTChat>> = new Map();
+
+// Define a route to handle questions
 app.post('/chat', async (req, res) => {
-  const { sessionId, character, Message } = req.body;
+  const { sessionId, character, Message, audio } = req.body;
 
   try {
     const sessionMessages = sessions.get(sessionId) || [];
-    console.log('Session Messages::',sessionMessages)
+    // console.log('Session Messages::', sessionMessages);
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
@@ -62,23 +64,27 @@ app.post('/chat', async (req, res) => {
           content: `Give me a response for the following chat message as ${character} from Harry Potter Series. The message response should be based on context derived from previous messages.
             Message: ${Message}. 
             The output should be in the following output format. If there is no action then return the action as empty string. 
-            Return it as a JSON String. The Action should only show the action / expression whatever he says must be in Response field. 
+            Return it as a JSON String. The Action should only show the action / expression whatever he says must be in Response field. If he does not say anything, then that gesture should only be in action not in Response.
+            The third field should be 'SpeakText' which contains the Response wrapped in SSML syntax with expressions best suited for the response. 
             Action and Response key's capitalization should not be changed.
             Example: 
             Message: Professor I am having trouble sleeping.
             Action: ${character} nods thoughtfully. 
-            Response: I understand. Let me help you with that..` 
+            Response: I understand. Let me help you with that.
+            SpeakText: <speak><express-as type="thoughtful">I understand. Let me help you with that.</express-as></speak>`
         }
       ],
     });
 
     const content = completion.choices[0].message.content;
     if (!sessions.has(sessionId)) {
-        sessions.set(sessionId, []);
+      sessions.set(sessionId, []);
     }
     if (content !== null) {
       const parsedContent = JSON.parse(content);
+      console.log(parsedContent);
       const responseText = parsedContent['Response'];
+      const speakText = parsedContent['SpeakText'];
       const sessionMessages = sessions.get(sessionId);
       if (sessionMessages) {
         sessionMessages.push({
@@ -90,10 +96,10 @@ app.post('/chat', async (req, res) => {
           content: content
         });
       }
-      // 1️⃣ Generate audio file for the response text
-      if(responseText){
-        const audioFilePath = await generateAudio(responseText);
-        // 2️⃣ Read the file and convert it to base64
+      // 1⃣ Generate audio file for the speak text
+      if (responseText) {
+        const audioFilePath = await generateAudio(responseText,audio);
+        // 2⃣ Read the file and convert it to base64
         fs.readFile(audioFilePath as string, (err, data) => {
           if (err) {
             console.error('❌ Failed to read the audio file:', err);
@@ -104,8 +110,7 @@ app.post('/chat', async (req, res) => {
           res.send({ Audio: base64Audio, ...parsedContent });
         });
 
-      }
-      else{
+      } else {
         res.send(parsedContent);
       }
     } else {
@@ -116,18 +121,19 @@ app.post('/chat', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-async function generateAudio(text: string) {  return new Promise((resolve, reject) => {
-    // 1️⃣ Create a unique file path for the output audio
+
+async function generateAudio(text: string,audio:string) {  
+  return new Promise((resolve, reject) => {
+    // 1⃣ Create a unique file path for the output audio
     const fileName = `output_${Date.now()}.mp3`; // Create a unique file name
     const filePath = path.join(staticFolderPath, fileName);
 
-    // 2️⃣ Create a writable stream for the output file
+    // 2⃣ Create a writable stream for the output file
     const writeStream = fs.createWriteStream(filePath);
 
     PlayHT.stream(text, { 
-      voiceEngine: 'PlayHT2.0', 
-      voiceId: 's3://voice-cloning-zero-shot/0927d2b3-915e-4c6c-b0f5-768d79aa463a/original/manifest.json' ,
-      
+      voiceEngine: 'PlayHT2.0-turbo', 
+      voiceId: audio
     })
     .then((stream) => {
       stream.pipe(writeStream);

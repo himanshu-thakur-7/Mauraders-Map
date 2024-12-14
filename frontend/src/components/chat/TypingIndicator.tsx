@@ -1,3 +1,5 @@
+import { chatUserAtom } from "@/recoil/atoms/chatSheetAtom";
+import { useRecoilValue } from "recoil";
 
 interface TypingIndicatorProps {
   sender: 'user' | 'ai';
@@ -5,13 +7,14 @@ interface TypingIndicatorProps {
 
 export function TypingIndicator({ sender }: TypingIndicatorProps) {
   const isAI = sender === 'ai';
+  const user = useRecoilValue(chatUserAtom);
   
   return (
     <div className={`flex items-start gap-2 mt-4 ${isAI ? '' : 'justify-end'}`}>
       {isAI && (
         <img
-          src="assets/Snape.png"
-          alt="AI Avatar"
+          src={user.image_url}
+          alt={user.name[0]}
           className="w-8 h-8 rounded-full"
         />
       )}
