@@ -109,13 +109,23 @@ app.post('/chat', async (req, res) => {
           const base64Audio = data.toString('base64');
           res.send({ Audio: base64Audio, ...parsedContent });
         });
-
+        // Delete the file after sending the response
+        res.on('finish', () => {
+          fs.unlink(audioFilePath as string, (unlinkErr) => {
+            if (unlinkErr) {
+              console.error('❌ Failed to delete the audio file:', unlinkErr);
+            } else {
+              console.log('✅ Audio file deleted successfully');
+            }
+          });
+        });
       } else {
         res.send(parsedContent);
       }
     } else {
       res.status(500).send('Unexpected response format from OpenAI');
     }
+    
   } catch (error) {
     console.error('❌ Error in /chat route:', error);
     res.status(500).json({ error: 'Internal Server Error' });
