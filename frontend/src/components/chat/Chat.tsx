@@ -8,43 +8,7 @@ import {chatUserAtom} from "../../recoil/atoms/chatSheetAtom";
 
 import { useRecoilValue } from 'recoil';
 
-const initialMessages: Message[] = [
-  {
-    id: '1',
-    content: 'Severus walks in and closes the door behind him.',
-    sender: 'ai',
-    timestamp: new Date(),
-    action: 'Severus walks in and closes the door behind him.'
-  },
-  {
-    id: '2',
-    content: 'what are you doing here',
-    sender: 'user',
-    timestamp: new Date()
-  },
-  {
-    id: '3',
-    content: 'I heard you talking to yourself. Are you okay?',
-    sender: 'ai',
-    timestamp: new Date(),
-    audioLength: '4"',
-    action: 'Severus looks worried.'
-  },
-  {
-    id: '4',
-    content: "yep I'm just talking to the voices in my head",
-    sender: 'user',
-    timestamp: new Date()
-  },
-  {
-    id: '5',
-    content: "You know that's not normal, right?",
-    sender: 'ai',
-    timestamp: new Date(),
-    audioLength: '2"',
-    action: 'Severus chuckles.'
-  }
-];
+const initialMessages: Message[] = [];
 
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
