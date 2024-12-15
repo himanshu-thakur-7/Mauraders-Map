@@ -64,14 +64,11 @@ app.post('/chat', async (req, res) => {
           content: `Give me a response for the following chat message as ${character} from Harry Potter Series. The message response should be based on context derived from previous messages.
             Message: ${Message}. 
             The output should be in the following output format. If there is no action then return the action as empty string. 
-            Return it as a JSON String. The Action should only show the action / expression whatever he says must be in Response field. If he does not say anything, then that gesture should only be in action not in Response.
-            The third field should be 'SpeakText' which contains the Response wrapped in SSML syntax with expressions best suited for the response. 
-            Action and Response key's capitalization should not be changed.
+            Return it as a JSON String. The Action should only show the action / expression whatever he says must be in Response field. If he does not say anything, then that gesture should only be in action not in Response. Action and Response key's capitalization should not be changed. If action contains words like 'says' or 'asks', then whatever comes after that... that is whatever he said or asked should be considered as a response value and not action.
             Example: 
             Message: Professor I am having trouble sleeping.
             Action: ${character} nods thoughtfully. 
-            Response: I understand. Let me help you with that.
-            SpeakText: <speak><express-as type="thoughtful">I understand. Let me help you with that.</express-as></speak>`
+            Response: I understand. Let me help you with that.`
         }
       ],
     });

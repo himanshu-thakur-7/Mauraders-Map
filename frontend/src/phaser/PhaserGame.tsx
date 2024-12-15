@@ -11,6 +11,13 @@ import { useRecoilState, useRecoilValue } from 'recoil';
 import {chatSheetAtom,chatUserAtom} from "../recoil/atoms/chatSheetAtom";
 import {chatSheetToggle} from "../recoil/selectors/chatSheetSelector";
 
+declare module 'phaser' {
+  interface Scene {
+    backgroundMusic: Phaser.Sound.BaseSound;
+    muteButton: Phaser.GameObjects.Image;
+  }
+}
+
 const PhaserGame: React.FC = () => {
   
   const [isLoading, setIsLoading] = useState(true);
@@ -198,6 +205,9 @@ scene.physics.add.collider(playerGroup, playerGroup, (player1, player2) => {
         width: window.innerWidth,
         height: window.innerHeight,
         parent: gameRef.current,
+         audio: {
+          disableWebAudio: false
+        },
         physics: {
           default: 'arcade',
           arcade: {
@@ -221,7 +231,9 @@ scene.physics.add.collider(playerGroup, playerGroup, (player1, player2) => {
         this.load.image('player', 'assets/player.png');
         this.load.image('background', 'assets/TileSet.jpg');
         this.load.image('footprint','assets/footprint.png');
-
+        this.load.audio('backgroundMusic', 'assets/bg.mp3');
+        this.load.image('muteIcon','assets/unmute.svg');
+        this.load.image('unmuteIcon','assets/mute.svg')
         setIsLoading(false);
     }
      
@@ -233,6 +245,31 @@ scene.physics.add.collider(playerGroup, playerGroup, (player1, player2) => {
       // Add tileset image (must match name in Tiled)
         // const tileset = map.addTilesetImage('TilesetName', 'tiles');
 
+        // Play background music
+        this.backgroundMusic = this.sound.add('backgroundMusic', {
+          volume: 0.2, // Adjust volume as needed
+          loop: true // Ensures it loops continuously
+        });
+        this.backgroundMusic.play();
+
+        // Add mute/unmute button at top-right corner
+        this.muteButton = this.add.image(30, 30, 'unmuteIcon')
+          .setInteractive()
+          .setScale(2) // Adjust size as needed
+          .setOrigin(0.5, 0.5)
+          .setScrollFactor(0) // Ensures it stays in place when the camera moves
+          .setDepth(10); // Ensures the button stays on top of everything
+
+        // Mute/Unmute toggle logic
+        this.muteButton.on('pointerdown', () => {
+          if (this.backgroundMusic.isPlaying) {
+            this.backgroundMusic.pause(); // Pause the music
+            this.muteButton.setTexture('muteIcon'); // Switch to mute icon
+          } else {
+            this.backgroundMusic.resume(); // Resume the music
+            this.muteButton.setTexture('unmuteIcon'); // Switch back to unmute icon
+          }
+        });
         // Add and scale the background
         const background = this.add.image(0, 0, 'background').setOrigin(0, 0);
         background.setDisplaySize(1600, 1600); // Adjust dimensions to match the background
