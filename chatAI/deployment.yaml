@@ -25,7 +25,7 @@ spec:
         - name: nodejs-ts-app
           image: professor7781/chat-server:latest
           ports:
-            - containerPort: 3000
+            - containerPort: 3034
           env:
             - name: NODE_ENV
               value: "production"
