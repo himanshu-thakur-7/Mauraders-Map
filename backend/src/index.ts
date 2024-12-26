@@ -6,6 +6,32 @@ import { config } from 'dotenv';
 
 config();
 
+
+async function doesRoomHaveBots(key: string): Promise<boolean> {
+  let cursor = '0';
+  do {
+    const [nextCursor, results] = await redis.hscan(key, cursor);
+
+    for (let i = 0; i < results.length; i += 2) {
+      const field = results[i];
+      const value = results[i + 1];
+      try {
+        const userData: BOT_DATA = JSON.parse(value);
+        if (userData.isBot === true) {
+          console.log(`Bot found in field: ${field}`);
+          return true;
+        }
+      } catch (error) {
+        console.warn(`Failed to parse JSON for field: ${field}`, error);
+      }
+    }
+
+    cursor = nextCursor;
+  } while (cursor !== '0');
+
+  return false;
+}
+
 const addBotsToEnvironment =  async(key:string,roomId:string)=>{
   const fsClient = new FirestoreClient();
   const botsData:Array<BOT_DATA> =  await fsClient.getDocuments('bots');
@@ -57,7 +83,10 @@ wss.on('connection', async (ws: CustomWebSocket) => {
       if(event === "join"){
         const {userId, roomId}:JoinEventType = data;
         const key = `room:${roomId}`;
-        await addBotsToEnvironment(key,roomId);
+        const checkBots = await doesRoomHaveBots(key);
+        if(!checkBots){
+          await addBotsToEnvironment(key,roomId);
+        }
         const randomX = Math.floor(Math.random() * SPACE_WIDTH);
         const randomY = Math.floor(Math.random() * SPACE_HEIGHT);
 

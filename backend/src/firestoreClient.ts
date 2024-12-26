@@ -23,7 +23,7 @@ export default class FirestoreClient{
         let data:Array<BOT_DATA> = [];
         const snapshot = await this.db.collection(collection).get();
         snapshot.forEach((doc)=>{
-            data.push({id:doc.id,name:doc.data().name,image_url:doc.data().image_url,audio:doc.data().audio,description:doc.data().description})
+            data.push({id:doc.id,name:doc.data().name,image_url:doc.data().image_url,audio:doc.data().audio,description:doc.data().description,isBot:true})
         })
         return data;
     }

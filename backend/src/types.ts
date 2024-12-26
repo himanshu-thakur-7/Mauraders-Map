@@ -4,4 +4,5 @@ export type BOT_DATA = {
     image_url:string,
     audio:string,
     description:string
+    isBot:boolean
 }
