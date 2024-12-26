@@ -1,4 +1,4 @@
-import {initializeApp, applicationDefault, cert } from 'firebase-admin/app';
+import {initializeApp, applicationDefault, cert, getApp } from 'firebase-admin/app';
 import  { getFirestore, Timestamp, FieldValue, Filter } from 'firebase-admin/firestore';
 const serviceAccount = require('../keys/service-account.json');
 import {BOT_DATA} from "./types";
@@ -7,9 +7,15 @@ import {BOT_DATA} from "./types";
 export default class FirestoreClient{
     db: FirebaseFirestore.Firestore;
     constructor(){
-        initializeApp({
-            credential: cert(serviceAccount)
-        });
+        try{
+            getApp();
+        }
+        catch(error){
+            
+            initializeApp({
+                credential: cert(serviceAccount)
+            });
+        }
         this.db = getFirestore();
     }
 

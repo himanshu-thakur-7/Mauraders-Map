@@ -2,8 +2,9 @@ import WebSocket from 'ws';
 import Redis from "ioredis";
 import FirestoreClient from './firestoreClient';
 import { BOT_DATA } from './types';
+import { config } from 'dotenv';
 
-
+config();
 
 const addBotsToEnvironment =  async(key:string,roomId:string)=>{
   const fsClient = new FirestoreClient();
@@ -14,7 +15,7 @@ const addBotsToEnvironment =  async(key:string,roomId:string)=>{
         const userName = bot.name
         const userPosition: UserPosition = { userId:userName, roomId:roomId, x: randomX, y: randomY };
         const metaData: BOT_DATA = {...bot};
-        await redis.hset(key, userName, JSON.stringify({...userPosition,...metaData}));
+        await redis.hset(key, userName, JSON.stringify({...userPosition,...metaData,'isBot':true}));
   });
 }
 
@@ -22,10 +23,7 @@ const addBotsToEnvironment =  async(key:string,roomId:string)=>{
 
 const wss = new WebSocket.Server({ port: 8080 });
 
-const redis = new Redis({
-  host:'localhost',
-  port:6379
-});
+const redis = new Redis(`redis://${process.env.REDIS_USER}:${process.env.REDIS_PASSWORD}@${process.env.REDIS_URL}`);
 
 interface UserPosition{
   userId: string,
@@ -59,7 +57,7 @@ wss.on('connection', async (ws: CustomWebSocket) => {
       if(event === "join"){
         const {userId, roomId}:JoinEventType = data;
         const key = `room:${roomId}`;
-        // await addBotsToEnvironment(key,roomId);
+        await addBotsToEnvironment(key,roomId);
         const randomX = Math.floor(Math.random() * SPACE_WIDTH);
         const randomY = Math.floor(Math.random() * SPACE_HEIGHT);
 
