@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodejs-ts-app
+  labels:
+    app: nodejs-ts-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nodejs-ts-app
+  template:
+    metadata:
+      labels:
+        app: nodejs-ts-app
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      tolerations:
+        - key: "kubernetes.io/arch"
+          operator: "Equal"
+          value: "arm64"
+          effect: "NoSchedule"
+      containers:
+        - name: nodejs-ts-app
+          image: professor7781/chat-server:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openai-secrets
+                  key: apiKey
+            - name: PLAYHT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: playht-secrets
+                  key: apiKey
+            - name: PLAYHT_USER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: playht-secrets
+                  key: userId
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+      imagePullSecrets:
+        - name: regcred
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodejs-express-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: nodejs-ts-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3034
