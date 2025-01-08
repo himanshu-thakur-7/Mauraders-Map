@@ -131,3 +131,5 @@ dist
 .DS_Store
 keys
 audio.json
+# Local Netlify folder
+.netlify

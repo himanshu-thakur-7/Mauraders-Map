@@ -6,7 +6,7 @@
   width: 306px;
   height: 600px;
   margin: auto;
-  background: url("assets/background.png") center center / cover;
+  background: url(assets/background.png) center center / cover;
   background-color: "#EBDCA5";
   position: relative;
   display: inline-block;
