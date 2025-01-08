@@ -1,4 +1,4 @@
-import {Github, Twitter, Dribbble } from 'lucide-react';
+import {Github, Twitter } from 'lucide-react';
 
 const Footer = () => {
   return (

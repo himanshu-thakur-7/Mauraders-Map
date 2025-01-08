@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 interface AudioWaveformProps {
   duration: number;
   isPlaying: boolean;
 }
 
-export function AudioWaveform({ duration, isPlaying }: AudioWaveformProps) {
+export function AudioWaveform({ isPlaying }: AudioWaveformProps) {
   const [bars] = useState(() => Array.from({ length: 4 }, () => Math.random() * 0.5 + 0.5));
   const [heights, setHeights] = useState(bars);
 

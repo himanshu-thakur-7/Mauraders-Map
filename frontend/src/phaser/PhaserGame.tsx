@@ -28,10 +28,10 @@ const PhaserGame: React.FC = () => {
   const localPlayerRef = useRef<Phaser.Physics.Arcade.Sprite | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [existingUsers, setExistingUsers] = useState<Array<UserPosition & MetaData>>([]);
-  const [toggleChatSheet,setToggleChatSheet] = useRecoilState(chatSheetAtom);
+  const [__,setToggleChatSheet] = useRecoilState(chatSheetAtom);
   const [_, setChatUser] = useRecoilState(chatUserAtom);
   // OR if you only need to read
-  const chatUserValue = useRecoilValue(chatUserAtom);  const toggleChatSheetValue = useRecoilValue(chatSheetToggle);
+  const toggleChatSheetValue = useRecoilValue(chatSheetToggle);
   const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket<WebSocketResponse>(WS_URL, {
     share: true,
     shouldReconnect: () => true,

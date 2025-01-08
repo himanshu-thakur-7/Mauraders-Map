@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import MaraudersMap from './components/MauradersMap';
-import MapToggle from './components/MapToggle';
 import Instructions from './components/Instructions';
 import Footer from './components/Footer';
 import PhaserGame from './phaser/PhaserGame';
