@@ -1,5 +1,5 @@
 [build]
-  command = "npm install --no-cache && npm run build"
+  command = "npm install --no-cache && tsc -b && npm run build"
   publish = "dist"
 
 [[redirects]]
