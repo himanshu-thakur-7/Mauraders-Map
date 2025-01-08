@@ -20,7 +20,7 @@ import Chat from "./chat/Chat";
 
 export default function ChatScreen() {
 //   const [open, setOpen] = useState(true)
-  const [toggleChatSheet,setToggleChatSheet] = useRecoilState(chatSheetAtom);
+  const [_,setToggleChatSheet] = useRecoilState(chatSheetAtom);
   const toggleChatSheetValue = useRecoilValue(chatSheetToggle);
   const [showChat,showChatToggle] = useState(false);
   const user = useRecoilValue(chatUserAtom);
