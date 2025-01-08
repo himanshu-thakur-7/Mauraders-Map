@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ws-app
+  labels:
+    app: ws-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ws-app
+  template:
+    metadata:
+      labels:
+        app: ws-app
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      tolerations:
+        - key: "kubernetes.io/arch"
+          operator: "Equal"
+          value: "arm64"
+          effect: "NoSchedule"
+      containers:
+        - name: ws-app
+          image: professor7781/ws-server:latest
+          ports:
+            - containerPort: 3034
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: REDIS_USER
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secrets
+                  key: REDIS_USER
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secrets
+                  key: REDIS_PASSWORD
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secrets
+                  key: REDIS_URL
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: "/app/keys/service-account.json" # Path inside the container
+          volumeMounts:
+            - name: firebase-service-account
+              mountPath: "/app/keys"
+              readOnly: true
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+      volumes:
+        - name: firebase-service-account
+          secret:
+            secretName: firebase-service-account
+      imagePullSecrets:
+        - name: regcred
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ws-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: ws-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080

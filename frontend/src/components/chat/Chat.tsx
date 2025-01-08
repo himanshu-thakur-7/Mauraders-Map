@@ -54,7 +54,7 @@ export default function Chat() {
    
     setIsTyping('ai');
     
-    const response: AxiosResponse = await axios.post('http://localhost:3034/chat',{
+    const response: AxiosResponse = await axios.post('http://34.123.103.223/chat',{
         "character":user.name,
         "Message":content,
         "session":`${Math.random()} ID`,
@@ -89,7 +89,6 @@ export default function Chat() {
     };
     setMessages(prev => [...prev, aiMessage]);
     setIsTyping(null);
-   
 
   };
 
