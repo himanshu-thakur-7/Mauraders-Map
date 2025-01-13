@@ -53,8 +53,8 @@ export default function Chat() {
     setMessages([...messages, newMessage]);
    
     setIsTyping('ai');
-    
-    const response: AxiosResponse = await axios.post('http://34.123.103.223/chat',{
+
+    const response: AxiosResponse = await axios.post('https://nodejs.34.57.252.146.nip.io/chat',{
         "character":user.name,
         "Message":content,
         "session":`${Math.random()} ID`,

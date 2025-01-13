@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nodejs-ts-app-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-staging" # Use "letsencrypt-prod" for production
+spec:
+  rules:
+    - host: nodejs.34.57.252.146.nip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nodejs-express-service
+                port:
+                  number: 80
+    - host: ws.34.57.252.146.nip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ws-service
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - nodejs.34.57.252.146.nip.io
+        - ws.34.57.252.146.nip.io
+      secretName: tls-secret
