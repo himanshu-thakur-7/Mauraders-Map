@@ -47,53 +47,128 @@ const PhaserGame: React.FC = () => {
   function setupPlayerCollisions(scene: Phaser.Scene) {
     const playerGroup = scene.physics.add.group(); // Group for player sprites
 
-    // Add existing players to the group
+    // // Add existing players to the group
     Object.values(playersRef.current).forEach(player => {
         playerGroup.add(player);
     });
 
+    const localPlayerGroup = scene.physics.add.group();
+    const otherPlayersGroup = scene.physics.add.group();
+
+
+     // Add local player to its group
+    const localPlayer = playersRef.current[localUserId.current];
+    if (localPlayer) {
+        localPlayerGroup.add(localPlayer);
+    }
+
+    // Add other players to their group
+    Object.entries(playersRef.current).forEach(([id, player]) => {
+        if (id !== localUserId.current) {
+            otherPlayersGroup.add(player);
+        }
+    });
+    
 scene.physics.add.collider(playerGroup, playerGroup, (player1, player2) => {
     if (player1 instanceof Phaser.Physics.Arcade.Sprite && player2 instanceof Phaser.Physics.Arcade.Sprite) {
         // Create a unique key for the player pair (ensure consistent ordering)
         const id1 = (player1.getData('label') as Phaser.GameObjects.Text).text;
         const id2 = (player2.getData('label') as Phaser.GameObjects.Text).text;
         const pairKey = [id1, id2].sort().join('-'); // Ensure unique key irrespective of order
-
         const currentTime = Date.now();
 
+        // player1.setVelocity(0, 0);
+        // player2.setVelocity(0, 0);
+
+        // Only process collision if local player is involved
+        // const isLocalPlayerInvolved = id1 === localUserId.current || id2 === localUserId.current;
+        
+        // if (!isLocalPlayerInvolved) {
+        //     return; // Skip collision processing for spectators
+        // }
+
+         const isPlayer1Local = id1 === localUserId.current;
+          const otherUser = isPlayer1Local ? id2 : id1;
+        //  const otherUser = id1 === localUserId.current ? id2 : id1;
+        const x = existingUsers.filter((u)=>u.userId===otherUser)[0];
+        const cooldownDuration = x.isBot ? COOLDOWN_TIME : COOLDOWN_TIME * 2;
+
+  // Force immediate stop for both sprites
+         if (player1.body) {
+            player1.body.stop();
+            if (player1.body instanceof Phaser.Physics.Arcade.Body) {
+                player1.body.setVelocity(0, 0);
+            }
+            player1.setVelocity(0, 0);
+            player1.setAcceleration(0, 0);
+        }
+        
+        if (player2.body) {
+            player2.body.stop();
+            if (player2.body instanceof Phaser.Physics.Arcade.Body) {
+                player2.body.setVelocity(0, 0);
+            }
+            player2.setVelocity(0, 0);
+            player2.setAcceleration(0, 0);
+        }
+
+        
+        sendJsonMessage({
+            event: 'updateLocation',
+            data: {
+                userId: localUserId.current,
+                roomId: 'hogwarts',
+                x: localUserId.current === id1 ? player1.x : player2.x,
+                y: localUserId.current === id1 ? player1.y : player2.y,
+                velocity: { x: 0, y: 0 }
+            }
+        });
         // Check if this pair is on cooldown
         if (collisionCooldowns.has(pairKey)) {
             const lastCollisionTime = collisionCooldowns.get(pairKey);
-            if (currentTime - lastCollisionTime < COOLDOWN_TIME) {
+            if (currentTime - lastCollisionTime < cooldownDuration) {
                 return; // Ignore collision if still on cooldown
             }
         }
   // Check if either player is a bot
-        const player1Data = existingUsers.find(u => u.userId === id1);
-        const player2Data = existingUsers.find(u => u.userId === id2);
-        const isBot = player1Data?.isBot || player2Data?.isBot;
+        // const player1Data = existingUsers.find(u => u.userId === id1);
+        // const player2Data = existingUsers.find(u => u.userId === id2);
+        // const isBot = player1Data?.isBot || player2Data?.isBot;
 
-         // Only apply bounce effect if at least one player is a bot
-        if (isBot) {
-            const tempVelocityX = player1.body?.velocity.x;
-            const tempVelocityY = player1.body?.velocity.y;
+        //  // Only apply bounce effect if at least one player is a bot
+        // if (isBot) {
+        //     const tempVelocityX = player1.body?.velocity.x;
+        //     const tempVelocityY = player1.body?.velocity.y;
 
-            if (player1.body && player2.body) {
-                player1.body.velocity.x = player2.body.velocity.x * -1;
-                player1.body.velocity.y = player2.body.velocity.y * -1;
+        //     if (player1.body && player2.body) {
+        //         player1.body.velocity.x = player2.body.velocity.x * -1;
+        //         player1.body.velocity.y = player2.body.velocity.y * -1;
 
-                player2.body.velocity.x = tempVelocityX !== undefined ? tempVelocityX * -1 : 0;
-                player2.body.velocity.y = tempVelocityY !== undefined ? tempVelocityY * -1 : 0;
-            }
-        }
+        //         player2.body.velocity.x = tempVelocityX !== undefined ? tempVelocityX * -1 : 0;
+        //         player2.body.velocity.y = tempVelocityY !== undefined ? tempVelocityY * -1 : 0;
+        //     }
+        // }
         // Log the collision
         console.log('Collision detected between:', id1, id2);
 
         // Check if the local user is involved
         if (id1 === localUserId.current || id2 === localUserId.current) {
             // alert(`You met ${id1 === localUserId.current ? id2 : id1}. Want to have video call or chat?`);
-            const otherUser = id1 === localUserId.current ? id2 : id1;
-            const x = existingUsers.filter((u)=>u.userId===otherUser)[0];
+            // const otherUser = id1 === localUserId.current ? id2 : id1;
+            // const x = existingUsers.filter((u)=>u.userId===otherUser)[0];
+            
+            // Apply bounce effect only for bot collisions
+            if (x.isBot && player1.body && player2.body) {
+              console.log('Applying bounce effect');
+              const tempVelocityX = player1.body.velocity.x;
+              const tempVelocityY = player1.body.velocity.y;
+              
+              player1.body.velocity.x = player2.body.velocity.x * -1;
+              player1.body.velocity.y = player2.body.velocity.y * -1;
+              player2.body.velocity.x = tempVelocityX * -1;
+              player2.body.velocity.y = tempVelocityY * -1;
+            }
+            
             game.current?.pause();
             setChatUser({
               name: x.userId,
@@ -102,18 +177,6 @@ scene.physics.add.collider(playerGroup, playerGroup, (player1, player2) => {
               description:x.description!
             })
             setToggleChatSheet(true);
-            
-            // Example collision response
-            // const tempVelocityX = player1.body?.velocity.x;
-            // const tempVelocityY = player1.body?.velocity.y;
-
-            // // if (player1.body && player2.body) {
-            // //     player1.body.velocity.x = player2.body.velocity.x * -1;
-            // //     player1.body.velocity.y = player2.body.velocity.y * -1;
-
-            // //     player2.body.velocity.x = tempVelocityX !== undefined ? tempVelocityX * -1 : 0;
-            // //     player2.body.velocity.y = tempVelocityY !== undefined ? tempVelocityY * -1 : 0;
-            // // }
         }
 
         // Update cooldown for this pair
@@ -549,16 +612,35 @@ function movePlayerInDirection(player: Phaser.Physics.Arcade.Sprite, direction: 
       .catch(() => initializePhaser());
   }, [isDataLoaded]);
 
-  useEffect(()=>{
-    console.log('Game::',game)
-    if(game.current){
-      if(toggleChatSheetValue === false)
-      {
-        game.current.resume();
-      }
+useEffect(() => {
+
+
+
+
+
+
+
+
+
+
+
+    if(game.current) {
+        if(toggleChatSheetValue === false) {
+            game.current.resume();
+            // Broadcast game resume state
+            sendJsonMessage({
+                event: 'updatePauseState',
+                data: {
+                    userId: localUserId.current,
+                    roomId: 'hogwarts',
+                    isPaused: false
+                }
+            });
+        }
     }
-  },[toggleChatSheetValue])
-  return <div>
+}, [toggleChatSheetValue]);
+
+return <div>
     {isLoading ? <Loader/>:<></>
     
   }

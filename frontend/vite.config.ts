@@ -14,8 +14,8 @@ export default defineConfig({
     outDir: 'dist', // Ensure the build output goes to 'dist' folder (Netlify default)
   },
   server: {
-    headers: {
-      'Content-Type': 'application/javascript',
-    },
+    port: 3000, // Use a custom port (default is 5173)
+    strictPort: true, // Ensures the server fails if the port is already in use
+    open: true, // Automatically opens the app in the default browser
   },
 })

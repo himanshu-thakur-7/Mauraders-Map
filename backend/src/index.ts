@@ -132,7 +132,23 @@ wss.on('connection', async (ws: CustomWebSocket) => {
           data: [{...userPosition}]
         });
       }
+      else if(event === "updatePauseState") {
+    const {userId, roomId, isPaused} = data;
+    const key = `room:${roomId}`;
+    const userData = await redis.hget(key, userId);
+    if(userData) {
+        const updatedData = {...JSON.parse(userData), isPaused};
+        await redis.hset(key, userId, JSON.stringify(updatedData));
+        
+        // Broadcast pause state to all clients
+        broadcast(ws, roomId, {
+            event: 'userPauseStateChanged',
+            data: { userId, isPaused }
+        });
     }
+}
+    }
+
     catch(e){
       console.log('Exception occurred',e);
     }
