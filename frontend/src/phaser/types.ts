@@ -7,12 +7,19 @@ export type UserPosition = {
   roomId: string;
   x: number;
   y: number;
+  direction?: string;
+  velocity?: {
+    x: number;
+    y: number;
+  };
+  footprint?: boolean;
 };
 
 export type MetaData = {
   image_url?:string,
-  audio?:string
-  description?:string
+  audio?:string,
+  description?:string,
+  isBot?:boolean
 }
 export type WebSocketResponse = {
   event: string;

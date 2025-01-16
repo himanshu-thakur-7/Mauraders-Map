@@ -19,21 +19,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Chat from "./chat/Chat";
 
 export default function ChatScreen() {
-//   const [open, setOpen] = useState(true)
-  const [_,setToggleChatSheet] = useRecoilState(chatSheetAtom);
+  const [, setToggleChatSheet] = useRecoilState(chatSheetAtom);
   const toggleChatSheetValue = useRecoilValue(chatSheetToggle);
-  const [showChat,showChatToggle] = useState(false);
+  const [showChat, showChatToggle] = useState(false);
   const user = useRecoilValue(chatUserAtom);
-//   const openSheet = () => {
-//     setOpen(true)
-//   }
+  console.log(user.image_url);
 
   return (
     <div>
       <Sheet open={toggleChatSheetValue} onOpenChange={setToggleChatSheet}>
         <SheetContent>
         {
-          showChat? <Chat></Chat>:<div>
+          showChat ? <Chat></Chat> : <div>
           <SheetHeader>
             <SheetDescription>
             <Avatar className="h-72 w-72 ml-10">

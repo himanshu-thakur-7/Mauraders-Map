@@ -28,8 +28,8 @@ const PhaserGame: React.FC = () => {
   const localPlayerRef = useRef<Phaser.Physics.Arcade.Sprite | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [existingUsers, setExistingUsers] = useState<Array<UserPosition & MetaData>>([]);
-  const [__,setToggleChatSheet] = useRecoilState(chatSheetAtom);
-  const [_, setChatUser] = useRecoilState(chatUserAtom);
+  const [, setToggleChatSheet] = useRecoilState(chatSheetAtom);
+  const [, setChatUser] = useRecoilState(chatUserAtom);
   // OR if you only need to read
   const toggleChatSheetValue = useRecoilValue(chatSheetToggle);
   const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket<WebSocketResponse>(WS_URL, {
@@ -55,8 +55,8 @@ const PhaserGame: React.FC = () => {
 scene.physics.add.collider(playerGroup, playerGroup, (player1, player2) => {
     if (player1 instanceof Phaser.Physics.Arcade.Sprite && player2 instanceof Phaser.Physics.Arcade.Sprite) {
         // Create a unique key for the player pair (ensure consistent ordering)
-        const id1 = (player1 as any).data.values.label._text;
-        const id2 = (player2 as any).data.values.label._text;
+        const id1 = (player1.getData('label') as Phaser.GameObjects.Text).text;
+        const id2 = (player2.getData('label') as Phaser.GameObjects.Text).text;
         const pairKey = [id1, id2].sort().join('-'); // Ensure unique key irrespective of order
 
         const currentTime = Date.now();
@@ -68,7 +68,24 @@ scene.physics.add.collider(playerGroup, playerGroup, (player1, player2) => {
                 return; // Ignore collision if still on cooldown
             }
         }
+  // Check if either player is a bot
+        const player1Data = existingUsers.find(u => u.userId === id1);
+        const player2Data = existingUsers.find(u => u.userId === id2);
+        const isBot = player1Data?.isBot || player2Data?.isBot;
 
+         // Only apply bounce effect if at least one player is a bot
+        if (isBot) {
+            const tempVelocityX = player1.body?.velocity.x;
+            const tempVelocityY = player1.body?.velocity.y;
+
+            if (player1.body && player2.body) {
+                player1.body.velocity.x = player2.body.velocity.x * -1;
+                player1.body.velocity.y = player2.body.velocity.y * -1;
+
+                player2.body.velocity.x = tempVelocityX !== undefined ? tempVelocityX * -1 : 0;
+                player2.body.velocity.y = tempVelocityY !== undefined ? tempVelocityY * -1 : 0;
+            }
+        }
         // Log the collision
         console.log('Collision detected between:', id1, id2);
 
@@ -87,16 +104,16 @@ scene.physics.add.collider(playerGroup, playerGroup, (player1, player2) => {
             setToggleChatSheet(true);
             
             // Example collision response
-            const tempVelocityX = player1.body?.velocity.x;
-            const tempVelocityY = player1.body?.velocity.y;
+            // const tempVelocityX = player1.body?.velocity.x;
+            // const tempVelocityY = player1.body?.velocity.y;
 
-            if (player1.body && player2.body) {
-                player1.body.velocity.x = player2.body.velocity.x * -1;
-                player1.body.velocity.y = player2.body.velocity.y * -1;
+            // // if (player1.body && player2.body) {
+            // //     player1.body.velocity.x = player2.body.velocity.x * -1;
+            // //     player1.body.velocity.y = player2.body.velocity.y * -1;
 
-                player2.body.velocity.x = tempVelocityX !== undefined ? tempVelocityX * -1 : 0;
-                player2.body.velocity.y = tempVelocityY !== undefined ? tempVelocityY * -1 : 0;
-            }
+            // //     player2.body.velocity.x = tempVelocityX !== undefined ? tempVelocityX * -1 : 0;
+            // //     player2.body.velocity.y = tempVelocityY !== undefined ? tempVelocityY * -1 : 0;
+            // // }
         }
 
         // Update cooldown for this pair
@@ -105,8 +122,37 @@ scene.physics.add.collider(playerGroup, playerGroup, (player1, player2) => {
         // Clean up expired cooldown entries after the cooldown period
         setTimeout(() => collisionCooldowns.delete(pairKey), COOLDOWN_TIME);
     } 
-  });  }
-  
+  });  }  
+
+      const addFootprint = (scene: Phaser.Scene,x: number, y: number,direction:string)=>{
+        const footprint = scene.add.image(x, y, 'footprint').setScale(0.05).setAlpha(0.7);
+          // Set rotation based on direction
+    switch (direction) {
+        case 'left':
+            footprint.setAngle(-90); // Rotate 90 degrees clockwise
+            break;
+        case 'right':
+            footprint.setAngle(90); // Rotate 90 degrees anti-clockwise
+            break;
+        case 'down':
+            footprint.setAngle(180); // Rotate 180 degrees
+            break;
+        case 'up':
+        default:
+            footprint.setAngle(0); // Default (no rotation for upward movement)
+    }
+        // Fade out and destroy the footprint after 1 second
+        scene.tweens.add({
+            targets: footprint,
+            // alpha: { from: 0.8, to: 0 },
+            scale: { from: 0.05, to: 0.01} ,
+            duration: 1000,
+            onComplete: () => {
+                footprint.destroy();
+            }
+        });
+    }
+
   function addOrUpdatePlayer(scene: Phaser.Scene, user: UserPosition){
   if (user.userId !== localUserId.current) {
     if (!playersRef.current[user.userId]) {
@@ -156,34 +202,49 @@ scene.physics.add.collider(playerGroup, playerGroup, (player1, player2) => {
       });
     }
   }, [readyState]);
-
   // Handle incoming WebSocket messages and update `existingUsers`
   useEffect(() => {
     if (lastJsonMessage) {
-      console.log(lastJsonMessage);
       const response = lastJsonMessage as WebSocketResponse;
       if (response.event === 'existingUsers') {
+        console.log('Existing Users:',response.data);
         setExistingUsers(response.data);
-        setIsDataLoaded(true); // Mark data as loaded
+        setIsDataLoaded(true);
       }
-      else if(response.event === 'newUser')
-      {
-        console.log(response.data[0]);
-       setExistingUsers((prevExistingUsers) => {
-        // Ensure no duplicate entries based on userId
-        const isUserAlreadyPresent = prevExistingUsers.some(
-          (user) => user.userId === response.data[0].userId
-        );
-        if (!isUserAlreadyPresent) {
-          return [...prevExistingUsers, response.data[0]];
+      else if(response.event === 'newUser') {
+        setExistingUsers(prevUsers => {
+          const newUser = response.data[0];
+          const isUserPresent = prevUsers.some(user => user.userId === newUser.userId);
+          if (!isUserPresent) {
+            return [...prevUsers, newUser]; 
+          }
+          return prevUsers;
+        });
+      }
+      else if(response.event === 'userMoved'){
+        // console.log(response.data);
+        const {userId, x, y, velocity,footprint,direction} = response.data[0];
+        const player = playersRef.current[userId];
+        
+        if (player) {
+          player.x = x;
+          player.y = y;
+          player.setVelocity(velocity!.x, velocity!.y);
+          
+          // Update label position
+          const label = player.getData('label') as Phaser.GameObjects.Text;
+          label.x = x;
+          label.y = y;
+          
+          // Add footprint if needed
+          if (footprint) {
+            console.log('Adding footprint');
+            addFootprint(phaserSceneRef.current!, x, y + 35, direction!);
+          }
         }
-        return prevExistingUsers;
-      });
-        console.log('User List Updated After New User',existingUsers);
       }
     }
-  }, [lastJsonMessage]);
-
+  }, [lastJsonMessage, existingUsers]); // Add existingUsers as dependency
  useEffect(() => {
   // Ensure that each player in `existingUsers` is added or updated in the Phaser scene
   if (phaserSceneRef.current && isDataLoaded) {
@@ -313,7 +374,7 @@ scene.physics.add.collider(playerGroup, playerGroup, (player1, player2) => {
 
   async function moveBots(scene: Phaser.Scene, time: number, speed: number) {
     for (const user of existingUsers) {
-      if (user.userId === localUserId.current) continue; // Skip local player
+      if (user.userId === localUserId.current || (user.isBot === undefined)) continue; // Skip local player
 
       const player = playersRef.current[user.userId];
       if (player) {
@@ -430,49 +491,43 @@ function movePlayerInDirection(player: Phaser.Physics.Arcade.Sprite, direction: 
             direction = 'down';
           }
     
-    
-          if(moved && time - lastFootprintTime > FOOTPRINT_DELAY){
-            addFootprint(this,lastPosition.x,lastPosition.y+35,direction);
+          // if (moved) {
+            // const shouldAddFootprint = time - lastFootprintTime > FOOTPRINT_DELAY;
+            
+            // if(shouldAddFootprint) {
+            //   addFootprint(this, lastPosition.x, lastPosition.y+35, direction);
+            //   lastFootprintTime = time;
+            // }
+
+            sendJsonMessage({
+              event: 'updateLocation',
+              data: {
+                userId: localUserId.current,
+                roomId: 'hogwarts',
+                x: localPlayer.x,
+                y: localPlayer.y,
+                direction: direction,
+                velocity: {
+                  x: localPlayer.body?.velocity.x || 0,
+                  y: localPlayer.body?.velocity.y || 0
+                },
+                footprint: moved && (time - lastFootprintTime > FOOTPRINT_DELAY)
+              }
+            });
+          // }
+        if (moved && time - lastFootprintTime > FOOTPRINT_DELAY) {
+            addFootprint(this, lastPosition.x, lastPosition.y + 35, direction);
             lastFootprintTime = time;
           }
-          // Update the label position
+                  // Update the label position
           const label = localPlayer.getData('label') as Phaser.GameObjects.Text;
           label.x = localPlayer.x;
           label.y = localPlayer.y;
-    
     }
         // Add keyboard controls for movement
         
       
-      const addFootprint = (scene: Phaser.Scene,x: number, y: number,direction:string)=>{
-        const footprint = scene.add.image(x, y, 'footprint').setScale(0.05).setAlpha(0.7);
-          // Set rotation based on direction
-    switch (direction) {
-        case 'left':
-            footprint.setAngle(-90); // Rotate 90 degrees clockwise
-            break;
-        case 'right':
-            footprint.setAngle(90); // Rotate 90 degrees anti-clockwise
-            break;
-        case 'down':
-            footprint.setAngle(180); // Rotate 180 degrees
-            break;
-        case 'up':
-        default:
-            footprint.setAngle(0); // Default (no rotation for upward movement)
-    }
-        // Fade out and destroy the footprint after 1 second
-        scene.tweens.add({
-            targets: footprint,
-            // alpha: { from: 0.8, to: 0 },
-            scale: { from: 0.05, to: 0.01} ,
-            duration: 1000,
-            onComplete: () => {
-                footprint.destroy();
-            }
-        });
-    }
-
+  
       // Handle window resizing
       const handleResize = () => {
         game.current?.scale.resize(window.innerWidth, window.innerHeight);

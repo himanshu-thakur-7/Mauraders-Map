@@ -84,9 +84,9 @@ wss.on('connection', async (ws: CustomWebSocket) => {
         const {userId, roomId}:JoinEventType = data;
         const key = `room:${roomId}`;
         const checkBots = await doesRoomHaveBots(key);
-        if(!checkBots){
-          await addBotsToEnvironment(key,roomId);
-        }
+        // if(!checkBots){
+        //   await addBotsToEnvironment(key,roomId);
+        // }
         const randomX = Math.floor(Math.random() * SPACE_WIDTH);
         const randomY = Math.floor(Math.random() * SPACE_HEIGHT);
 
@@ -121,14 +121,15 @@ wss.on('connection', async (ws: CustomWebSocket) => {
       // console.log(`Received message: ${message}`);
       // ws.send(`Server received your message: ${message}`);
       else if(event === "updateLocation"){
-        const {userId,roomId,x,y} = data;
+        const {userId, roomId, x, y, direction, velocity, footprint} = data;
         const key = `room:${roomId}`;
-        const userPosition:UserPosition = {userId,roomId,x,y};
-        await redis.hset(key,userId,JSON.stringify(userPosition));
-        console.log(`User ${userId} moved to (${x}, ${y}) in room ${roomId}`);
+        const userPosition = {userId, roomId, x, y, direction, velocity, footprint};
+        await redis.hset(key, userId, JSON.stringify(userPosition));
+        
+        console.log('user moved',userPosition);
         broadcast(ws, roomId, {
           event: 'userMoved',
-          data: { ...userPosition },
+          data: [{...userPosition}]
         });
       }
     }

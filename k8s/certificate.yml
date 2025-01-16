@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nodejs-tls
+  namespace: default
+spec:
+  secretName: tls-secret # Secret that will store the certificate
+  issuerRef:
+    name: letsencrypt-prod # Or "letsencrypt-staging" for testing
+    kind: ClusterIssuer
+  commonName: nodejs.34.57.252.146.nip.io # Replace with your nip.io domain
+  dnsNames:
+    - nodejs.34.57.252.146.nip.io # Replace with your nip.io domain
+    - ws.34.57.252.146.nip.io # Replace with your nip.io domain
