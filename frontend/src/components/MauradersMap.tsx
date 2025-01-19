@@ -1,6 +1,18 @@
 import { useEffect } from 'react';
 import { useVoiceCommands } from '../hooks/useVoiceCommands';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog"
 import '../styles/map.css';
+import { Button } from './ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { LoginForm } from './LoginForm';
+import { SignUpForm } from './SignUpForm';
 
 interface MaraudersMapProps {
   isActive: boolean;
@@ -9,9 +21,12 @@ interface MaraudersMapProps {
   setLoadGame: (isGameLoaded: boolean) => void;
 }
 
+
+
 const MaraudersMap = ({ isActive, setIsActive,setLoadGame }: MaraudersMapProps) => {
   const { startVoiceRecognition } = useVoiceCommands(setIsActive);
 
+  
   useEffect(() => {
     startVoiceRecognition();
   }, [startVoiceRecognition]);
@@ -28,9 +43,31 @@ const MaraudersMap = ({ isActive, setIsActive,setLoadGame }: MaraudersMapProps) 
         <img src='assets/harryedvige5.png' style={{'rotate':'180deg'}} className='absolute -bottom-16 -mb-4' ></img>
       </div>
       <div className='justify-center mt-72'>
-          <button onClick={()=>{
-            setLoadGame(true);
-          }}>Start Game</button>
+          <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="link">Welcome To Hogwarts</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Welcome to Hogwarts</DialogTitle>
+              <DialogDescription>
+                Choose your way to enter the magical world
+              </DialogDescription>
+            </DialogHeader>
+            <Tabs defaultValue="login" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="login">Login</TabsTrigger>
+                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              </TabsList>
+              <TabsContent value="login">
+                <LoginForm/>
+              </TabsContent>
+              <TabsContent value="signup">
+                <SignUpForm/>
+              </TabsContent>
+            </Tabs>
+          </DialogContent>
+        </Dialog>
       </div>
       <div className="map-flap flap--2">
         

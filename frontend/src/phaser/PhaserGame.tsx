@@ -437,7 +437,7 @@ scene.physics.add.collider(playerGroup, playerGroup, (player1, player2) => {
 
   async function moveBots(scene: Phaser.Scene, time: number, speed: number) {
     for (const user of existingUsers) {
-      if (user.userId === localUserId.current || (user.isBot === undefined)) continue; // Skip local player
+      if (user.userId === localUserId.current || !user.isBot) continue; // Skip local player
 
       const player = playersRef.current[user.userId];
       if (player) {
@@ -613,17 +613,6 @@ function movePlayerInDirection(player: Phaser.Physics.Arcade.Sprite, direction: 
   }, [isDataLoaded]);
 
 useEffect(() => {
-
-
-
-
-
-
-
-
-
-
-
     if(game.current) {
         if(toggleChatSheetValue === false) {
             game.current.resume();

@@ -84,9 +84,9 @@ wss.on('connection', async (ws: CustomWebSocket) => {
         const {userId, roomId}:JoinEventType = data;
         const key = `room:${roomId}`;
         const checkBots = await doesRoomHaveBots(key);
-        // if(!checkBots){
-        //   await addBotsToEnvironment(key,roomId);
-        // }
+        if(!checkBots){
+          await addBotsToEnvironment(key,roomId);
+        }
         const randomX = Math.floor(Math.random() * SPACE_WIDTH);
         const randomY = Math.floor(Math.random() * SPACE_HEIGHT);
 
