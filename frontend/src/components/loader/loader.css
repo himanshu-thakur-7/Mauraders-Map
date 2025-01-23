@@ -2,6 +2,9 @@
 body {
   background-image: linear-gradient(to top, #edddc3 0%, #edddc3 100%);
   height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
   /* overflow: hidden; */
   font-family: "IM Fell English", "Lucida Handwriting", cursive;
 }

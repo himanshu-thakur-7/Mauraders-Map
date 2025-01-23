@@ -9,6 +9,7 @@ import {
   DialogTrigger,
 } from "./ui/dialog"
 import '../styles/map.css';
+// If the file exists but TypeScript can't find it, add a declaration file
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { LoginForm } from './LoginForm';
@@ -60,10 +61,10 @@ const MaraudersMap = ({ isActive, setIsActive,setLoadGame }: MaraudersMapProps) 
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
               </TabsList>
               <TabsContent value="login">
-                <LoginForm/>
+                <LoginForm setLoadGame={setLoadGame}/>
               </TabsContent>
               <TabsContent value="signup">
-                <SignUpForm/>
+                <SignUpForm setLoadGame={setLoadGame}/>
               </TabsContent>
             </Tabs>
           </DialogContent>

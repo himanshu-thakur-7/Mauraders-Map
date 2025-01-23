@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import SortingHat from './SortingHat';
 import Avatar from './Avatar';
-// import "./style.css";
+import "./style.css";
 
 interface SortingHatWrapperProps {
   size?: 'small' | 'medium' | 'large';

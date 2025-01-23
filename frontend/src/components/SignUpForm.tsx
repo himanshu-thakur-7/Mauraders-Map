@@ -20,7 +20,10 @@ const formSchema = z.object({
   house: z.string().optional(),
 })
 
-export function SignUpForm() {
+interface SignupProps {
+  setLoadGame: (value: boolean) => void;
+}
+export function SignUpForm({ setLoadGame }: SignupProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -32,6 +35,7 @@ export function SignUpForm() {
   })
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    setLoadGame(true);
     console.log(values)
   }
 

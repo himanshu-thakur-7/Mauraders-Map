@@ -16,8 +16,11 @@ const formSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 })
+interface LoginProps {
+  setLoadGame: (value: boolean) => void;
+}
 
-export function LoginForm() {
+export function LoginForm({ setLoadGame }: LoginProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -27,6 +30,7 @@ export function LoginForm() {
   })
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    setLoadGame(true);
     // Handle login logic here
     console.log(values)
   }
