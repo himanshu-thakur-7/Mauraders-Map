@@ -11,6 +11,9 @@ import {
   FormMessage,
 } from "./ui/form"
 import { Input } from "./ui/input"
+import { signInWithEmailAndPassword } from "firebase/auth"
+// import { doc, setDoc } from "firebase/firestore";
+import { auth} from "../firebase/firebase";
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -29,8 +32,19 @@ export function LoginForm({ setLoadGame }: LoginProps) {
     },
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    setLoadGame(true);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try{
+      const userCredential = await signInWithEmailAndPassword(auth,values.email,values.password);
+      const token = await userCredential.user.getIdToken();
+      localStorage.setItem('token',token);
+      setLoadGame(true);
+    }
+    catch(error: unknown){
+      form.setError("root",{
+        message: "Sign up failed"
+      })
+      console.log(error);
+    }
     // Handle login logic here
     console.log(values)
   }

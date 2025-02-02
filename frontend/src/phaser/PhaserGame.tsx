@@ -33,6 +33,7 @@ const PhaserGame: React.FC = () => {
   // OR if you only need to read
   const toggleChatSheetValue = useRecoilValue(chatSheetToggle);
   const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket<WebSocketResponse>(WS_URL, {
+    protocols:["Authorization",localStorage.getItem('token')!],
     share: true,
     shouldReconnect: () => true,
   });
@@ -264,7 +265,7 @@ scene.physics.add.collider(playerGroup, playerGroup, (player1, player2) => {
         },
       });
     }
-  }, [readyState]);
+  }, [readyState, sendJsonMessage]);
   // Handle incoming WebSocket messages and update `existingUsers`
   useEffect(() => {
     if (lastJsonMessage) {

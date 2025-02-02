@@ -6,7 +6,7 @@ import { config } from 'dotenv';
 
 config();
 
-
+const fsClient = new FirestoreClient();
 async function doesRoomHaveBots(key: string): Promise<boolean> {
   let cursor = '0';
   do {
@@ -33,7 +33,7 @@ async function doesRoomHaveBots(key: string): Promise<boolean> {
 }
 
 const addBotsToEnvironment =  async(key:string,roomId:string)=>{
-  const fsClient = new FirestoreClient();
+  
   const botsData:Array<BOT_DATA> =  await fsClient.getDocuments('bots');
   botsData.forEach(async bot=>{
        const randomX = Math.floor(Math.random() * SPACE_WIDTH);
@@ -49,6 +49,7 @@ const addBotsToEnvironment =  async(key:string,roomId:string)=>{
 
 const wss = new WebSocket.Server({ port: 8080 });
 
+console.log(`redis://${process.env.REDIS_USER}:${process.env.REDIS_PASSWORD}@${process.env.REDIS_URL}`);
 const redis = new Redis(`redis://${process.env.REDIS_USER}:${process.env.REDIS_PASSWORD}@${process.env.REDIS_URL}`);
 
 interface UserPosition{
@@ -70,7 +71,18 @@ interface CustomWebSocket extends WebSocket{
   roomId? : string
 }
 
-wss.on('connection', async (ws: CustomWebSocket) => {
+wss.on('connection', async (ws: CustomWebSocket,req) => {
+  console.log('Request::',req.headers);
+  const token = req.headers['sec-websocket-protocol']?.split('Authorization, ')[1];
+   if (!token) {
+        ws.close(1008, 'No authentication token provided');
+        return;
+    }
+  try{  
+  const decodedToken = await fsClient.verifyToken(token);
+  ws['userId'] = decodedToken.uid;
+  console.log('decodedToken',decodedToken.uid);
+
   console.log('New client connected');
 
   ws.on('message', async(message: string) => {
@@ -173,6 +185,9 @@ wss.on('connection', async (ws: CustomWebSocket) => {
     }
     console.log('Client disconnected');
   });
+}catch(e){
+
+}
 });
 
 

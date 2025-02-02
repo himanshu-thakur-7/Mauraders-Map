@@ -12,6 +12,9 @@ import {
 } from "./ui/form"
 import { Input } from "./ui/input"
 import SortingHatWrapper from "./sortinghat/SortingHatWrapper"
+import { createUserWithEmailAndPassword } from "firebase/auth"
+import { doc, setDoc } from "firebase/firestore";
+import { auth, db } from "../firebase/firebase";
 
 const formSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -34,8 +37,28 @@ export function SignUpForm({ setLoadGame }: SignupProps) {
     },
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    setLoadGame(true);
+ async  function onSubmit(values: z.infer<typeof formSchema>) {
+    try{
+      console.log('auth::',auth);
+      const userCredential = await createUserWithEmailAndPassword(auth,values.email,values.password);
+      console.log('user Cred',userCredential);
+      await setDoc(doc(db,"users",userCredential.user.uid),{
+        username: values.username,
+        email: values.email,
+        house: values.house,
+        createdAt: new Date()
+      })
+      const token = await userCredential.user.getIdToken();
+      localStorage.setItem('token',token);
+      setLoadGame(true);
+
+    }
+    catch(error: unknown){
+      form.setError("root",{
+        message: "Sign up failed"
+      })
+      console.log(error);
+    }
     console.log(values)
   }
 
