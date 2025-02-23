@@ -15,6 +15,8 @@ import SortingHatWrapper from "./sortinghat/SortingHatWrapper"
 import { createUserWithEmailAndPassword } from "firebase/auth"
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase/firebase";
+import { FirestoreError } from "firebase/firestore";
+import { FirebaseError } from "firebase/app";
 
 const formSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -38,28 +40,58 @@ export function SignUpForm({ setLoadGame }: SignupProps) {
   })
 
  async  function onSubmit(values: z.infer<typeof formSchema>) {
-    try{
-      console.log('auth::',auth);
-      const userCredential = await createUserWithEmailAndPassword(auth,values.email,values.password);
-      console.log('user Cred',userCredential);
-      await setDoc(doc(db,"users",userCredential.user.uid),{
-        username: values.username,
-        email: values.email,
-        house: values.house,
-        createdAt: new Date()
-      })
-      const token = await userCredential.user.getIdToken();
-      localStorage.setItem('token',token);
-      setLoadGame(true);
+   try {
+    console.log('Starting signup process...');
+    
+    // Create user authentication
+    const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+    console.log('User authenticated:', userCredential.user.uid);
+    
+    // Prepare user data
+    const userData = {
+      username: values.username,
+      email: values.email,
+      house: values.house || null,
+      createdAt: new Date().toISOString()
+    };
+    console.log('Preparing to write user data:', userData);
 
+    // Create reference first
+    const userRef = doc(db, "users", userCredential.user.uid);
+    
+    // Create user document in Firestore
+    try {
+      await setDoc(userRef, userData);
+      console.log('User document created successfully');
+    } catch (firestoreError: unknown) {
+      if (firestoreError instanceof FirestoreError) {
+        console.error('Detailed Firestore error:', {
+          code: firestoreError.code,
+          message: firestoreError.message,
+          details: firestoreError
+        });
+        throw new Error(`Failed to create user profile: ${firestoreError.message}`);
+      }
+      throw firestoreError;
     }
-    catch(error: unknown){
-      form.setError("root",{
-        message: "Sign up failed"
-      })
-      console.log(error);
+
+    // Get token and complete signup
+    const token = await userCredential.user.getIdToken();
+    localStorage.setItem('token', token);
+    console.log('Signup completed successfully');
+    setLoadGame(true);
+  } catch (error: unknown) {
+    if (error instanceof FirebaseError) {
+      console.error('Detailed signup error:', {
+        code: error.code,
+        message: error.message,
+        details: error
+      });
+      form.setError("root", {
+        message: error.message || "Sign up failed"
+      });
     }
-    console.log(values)
+  }
   }
 
   return (
